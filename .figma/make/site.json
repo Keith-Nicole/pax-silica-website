@@ -1,0 +1,10 @@
+{
+  "description": "An advocacy hub helping Filipino communities understand data center impacts, explore research and policy, share stories, and take action to protect homes and resources.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
