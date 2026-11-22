@@ -1,49 +1,49 @@
-import { FormEvent, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { impactMeters } from "./data/impactMeters";
 
 const C = "#3FC8FF";
 const W = "#F2F7FF";
 
-function LogoMark({ className = "" }: { className?: string }) {
+function LogoImage({
+  className = "",
+  decorative = false,
+}: {
+  className?: string;
+  decorative?: boolean;
+}) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 120 140"
-      role="img"
-      aria-label="No to Pax Silica water, server and sprout mark"
-    >
-      <path d="M60 4C46 27 18 55 14 86c-4 30 16 49 42 51" fill="none" stroke={C} strokeWidth="4" />
-      <path d="M60 4c14 23 42 51 46 82 4 30-16 49-42 51" fill="none" stroke={C} strokeWidth="4" />
-      <path
-        d="M60 23v20M38 43h44v15H38zm0 21h44v15H38zm0 21h44v15H38z"
-        fill="none"
-        stroke={C}
-        strokeWidth="4"
-      />
-      <circle cx="75" cy="51" r="2.5" fill={C} />
-      <circle cx="75" cy="72" r="2.5" fill={C} />
-      <circle cx="75" cy="93" r="2.5" fill={C} />
-      <path d="M49 100v13H37m23-13v24m11-24v13h12" fill="none" stroke={C} strokeWidth="4" />
-      <circle cx="33" cy="113" r="4" fill="none" stroke={C} strokeWidth="3" />
-      <circle cx="87" cy="113" r="4" fill="none" stroke={C} strokeWidth="3" />
-      <path
-        d="M60 136v-17c-8-10-17-12-27-8 4 9 13 13 27 13 6-10 15-14 27-11-4 9-13 13-27 15"
-        fill="#7DB35F"
-        stroke="#7DB35F"
-        strokeWidth="2"
-      />
+    <img
+      src="/no-pax-logo-clean.png"
+      className={`aspect-square object-contain ${className}`}
+      alt={decorative ? "" : "No to Pax Silica logo"}
+      aria-hidden={decorative || undefined}
+      draggable={false}
+    />
+  );
+}
+
+function InkFilter() {
+  return (
+    <svg preserveAspectRatio="xMidYMid meet" className="ink-filter-defs" width="0" height="0" aria-hidden="true" focusable="false">
+      <filter id="ink" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="7" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="1.8" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
     </svg>
   );
 }
 
-function DraftMarks({ sheet }: { sheet: string }) {
+function DraftMarks({ sheet, scale = "NTS" }: { sheet: string; scale?: string }) {
   return (
     <>
       <span className="crop tl" />
       <span className="crop tr" />
       <span className="crop bl" />
       <span className="crop br" />
-      <span className="coordinate">N 14°35′ · E 120°58′</span>
-      <span className="sheet-label">SHEET {sheet} · SCALE NTS</span>
+      <span className="draft-meta">
+        <span className="coordinate">N 14°35' · E 120°58'</span>
+        <span className="sheet-label">SHEET {sheet} · SCALE {scale}</span>
+      </span>
     </>
   );
 }
@@ -76,206 +76,711 @@ function SectionTitle({
 }
 
 function TableProps({ variant = 0 }: { variant?: number }) {
-  return (
-    <div className={`table-props props-${variant}`} aria-hidden="true">
-      <span className="prop ruler">
-        1:100&nbsp;&nbsp; 20&nbsp;&nbsp; 40&nbsp;&nbsp; 60&nbsp;&nbsp; 80
-      </span>
-      <span className="prop red-pen" />
-      <span className="prop pencil" />
-      <span className="prop coffee">
+  const propSets = [
+    ["ruler", "red-pen", "pencil", "coffee", "tape-roll", "glasses"],
+    ["tape-roll", "phone", "lanyard", "megaphone", "pencil"],
+    ["ruler", "calculator", "glasses", "red-pen", "folder"],
+    ["red-pen", "megaphone", "stamp", "sticky"],
+  ];
+  const propArt: Record<string, React.ReactNode> = {
+    ruler: "1:100  20  40  60  80",
+    "red-pen": null,
+    pencil: null,
+    coffee: <i />,
+    "tape-roll": null,
+    glasses: (
+      <>
         <i />
-      </span>
-      <span className="prop tape-roll" />
-      <span className="prop glasses">
         <i />
-        <i />
-      </span>
-      <span className="prop calculator">
+      </>
+    ),
+    calculator: (
+      <>
         7 4 9<br />2 0 5
-      </span>
-      <span className="prop pandesal" />
-      <span className="prop phone">
+      </>
+    ),
+    phone: (
+      <>
         BARANGAY GC
         <br />
         <b>127 members</b>
         <i>May hearing bukas?</i>
-      </span>
-      <span className="prop lanyard">
+      </>
+    ),
+    lanyard: (
+      <>
         VOLUNTEER
         <br />
         <b>MAYA SANTOS</b>
-      </span>
-      <span className="prop megaphone">)))</span>
+      </>
+    ),
+    megaphone: ")))",
+    folder: (
+      <svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 120 90" aria-hidden="true" focusable="false">
+        <path d="M6 20h38l10 12h60v50H6z" fill="#c99c55" stroke="#6c4b22" strokeWidth="3" />
+        <path d="M6 32h108v50H6z" fill="#e3bb76" stroke="#6c4b22" strokeWidth="3" />
+        <path d="M22 48h58M22 60h44" stroke="#fff5d4" strokeWidth="3" />
+      </svg>
+    ),
+    stamp: (
+      <svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+        <path d="M40 18h40v38l18 20v14H22V76l18-20z" fill="#b73620" stroke="#5d1a0f" strokeWidth="3" />
+        <path d="M18 90h84v14H18z" fill="#792414" stroke="#5d1a0f" strokeWidth="3" />
+        <path d="M48 30h24M48 42h24" stroke="#f4d7b3" strokeWidth="3" />
+      </svg>
+    ),
+    sticky: (
+      <svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 110 105" aria-hidden="true" focusable="false">
+        <path d="M8 5h94v72l-29 26H8z" fill="#f4dc62" stroke="#8a6a18" strokeWidth="3" />
+        <path d="M73 103V77h29" fill="none" stroke="#8a6a18" strokeWidth="3" />
+        <path d="M23 30h54M23 47h42" stroke="#7b5b12" strokeWidth="3" />
+      </svg>
+    ),
+  };
+
+  return (
+    <div className={`table-props props-${variant}`} aria-hidden="true">
+      {(propSets[variant] ?? propSets[0]).map((name) => (
+        <span className={`prop ${name}`} key={name}>
+          {propArt[name]}
+        </span>
+      ))}
     </div>
   );
 }
 
-function ProtestMarks({ compact = false }: { compact?: boolean }) {
+function ProtestMarks({ compact = false, hero = false }: { compact?: boolean; hero?: boolean }) {
   return (
-    <div className={`protest-marks ${compact ? "compact" : ""}`} aria-hidden="true">
+    <div className={`protest-marks ${compact ? "compact" : ""}${hero ? " hero-stencils" : ""}`} aria-hidden="true">
       <span>HUWAG!</span>
       <span>WALANG KONSULTASYON</span>
-      <span>BAHAY NAMIN ITO</span>
+      <span>LUPA NAMIN ITO</span>
+      {hero && (
+        <>
+          <span>IPAGLABAN</span>
+          <span>TUBIG AY BUHAY</span>
+          <span>KONSULTA MUNA</span>
+          <span>BAHAY NAMIN ITO</span>
+          <span>NO TO PAX SILICA</span>
+          <span>TULOY ANG LABAN</span>
+          <span>HUWAG PABAYAAN</span>
+          <span>TAO MUNA</span>
+          <span>RESIST!</span>
+          <span>TUBIG &gt; DATA</span>
+        </>
+      )}
     </div>
   );
 }
 
-function DataCenterDrawing({ compact = false }: { compact?: boolean }) {
+function PetitionIcon() {
   return (
     <svg
-      className={`technical-drawing ${compact ? "compact" : ""}`}
-      viewBox="0 0 760 520"
-      role="img"
-      aria-label="Isometric hyperscale data center towering over Filipino homes"
+      preserveAspectRatio="xMidYMid meet"
+      className="petition-icon"
+      viewBox="0 0 128 76"
+      aria-hidden="true"
+      focusable="false"
     >
-      <g className="draw-lines" fill="none" stroke={C} strokeWidth="1.5">
-        <path d="M180 175 424 76l245 118-250 111zM180 175v159l239 119V305M669 194v158L419 453" />
-        <path
-          d="m419 305 250-111M208 195l211 104 219-98M233 226l186 92 185-84M260 255l159 79 153-69"
-          opacity=".55"
-        />
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <path key={i} d={`M${238 + i * 61} ${151 - i * 25}v62l45 22v-64`} />
+      <path d="M18 8h52v60H18z" fill="none" stroke={C} strokeWidth="2" />
+      <path d="M34 8V3h20v5" fill="none" stroke={C} strokeWidth="2" />
+      <path d="M29 26h30M29 36h30M29 46h18" fill="none" stroke={C} strokeWidth="1.5" />
+      <path d="m28 25 5 5 8-11" fill="none" stroke="var(--orange)" strokeWidth="2.5" />
+      <path d="m62 56 21-21 8 8-21 21-11 3z" fill="var(--orange)" stroke="var(--navy)" strokeWidth="2" />
+      <path d="M80 38l8 8" fill="none" stroke={C} strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function ChecklistIcon() {
+  return (
+    <svg preserveAspectRatio="xMidYMid meet" className="checklist-icon" viewBox="0 0 60 60" aria-hidden="true" focusable="false">
+      <path d="M12 4h36v52H12z" fill="none" stroke={C} strokeWidth="2" />
+      <path d="M19 18h22M19 29h22M19 40h13" fill="none" stroke={C} strokeWidth="1.5" />
+      <path
+        d="M18 17l3 3 5-7M18 28l3 3 5-7M18 39l3 3 5-7"
+        fill="none"
+        stroke="var(--orange)"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function FinaleStencils() {
+  return (
+    <div className="finale-stencils" aria-hidden="true">
+      <span className="stencil stencil-a">TAMA NA!</span>
+      <span className="stencil stencil-b">KONSULTA MUNA!</span>
+    </div>
+  );
+}
+
+function CrowdBoundary() {
+  const chants = [
+    { text: "TAMA NA!", x: 60, y: 24, width: 150, size: 17, color: C, rotate: -4 },
+    { text: "REJECT PAX SILICA", x: 226, y: 12, width: 230, size: 15, color: "#FF7A1A", rotate: 3 },
+    { text: "KONSULTA MUNA!", x: 474, y: 28, width: 205, size: 16, color: C, rotate: -3 },
+    { text: "PHILIPPINES NOT FOR SALE", x: 694, y: 10, width: 300, size: 14, color: "#FF7A1A", rotate: 2 },
+    { text: "BAHAY NAMIN ITO", x: 1008, y: 24, width: 212, size: 15, color: C, rotate: -3 },
+    { text: "GET THE PAX OUT!", x: 1230, y: 14, width: 198, size: 14, color: "#FF7A1A", rotate: 4 },
+  ];
+  return (
+    <svg preserveAspectRatio="xMidYMid meet"
+      className="crowd-boundary"
+      viewBox="0 0 1440 180"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <symbol id="finale-crowd-figure" viewBox="-45 -40 90 130">
+          <g fill="none" stroke={C} strokeWidth="2" opacity="0.72">
+            <circle cx="0" cy="-22" r="13" />
+            <path d="M-18 90V14q0-17 18-17t18 17v76" />
+            <path d="M-14 14-35-7l-4-22" strokeWidth="10" strokeLinecap="square" />
+            <circle cx="-39" cy="-30" r="8" />
+            <path d="M14 18 37 7" strokeWidth="10" strokeLinecap="square" />
+            <circle cx="40" cy="5" r="7" />
+          </g>
+        </symbol>
+      </defs>
+      <g className="crowd-chants" opacity="0.62">
+        {chants.map((chant) => (
+          <g key={chant.text} transform={`translate(${chant.x} ${chant.y}) rotate(${chant.rotate})`}>
+            <rect
+              width={chant.width}
+              height="42"
+              fill="var(--navy)"
+              stroke={chant.color}
+              strokeWidth="1.5"
+            />
+            <text
+              x={chant.width / 2}
+              y="27"
+              textAnchor="middle"
+              fill={chant.color}
+              fontSize={chant.size}
+              fontWeight="800"
+            >
+              {chant.text}
+            </text>
+          </g>
         ))}
-        <path d="M218 341 82 403l122 59 131-63zM82 403v42l122 60v-43M335 399v41l-131 65" />
-        <path d="m104 399 42-47 45 23 35-31 71 37M144 355v46m79-55v65" />
-        <path d="M55 465h294M55 456v18m294-18v18M55 465l10-6m-10 6 10 6m284-6-10-6m10 6-10 6" />
-        <path d="M707 193v272M698 193h18m-18 272h18M707 193l-6 12m6-12 6 12m-6 260-6-12m6 12 6-12" />
-        <path
-          d="M535 383c34-40 75-17 89 1 31-23 59-4 61 23-14 22-46 26-68 14-31 21-76 5-82-38Z"
-          stroke="#FF7A1A"
-          strokeDasharray="8 6"
-        />
-        <path d="M507 370 456 397" />
-        <path d="m456 397 12-2m-12 2 6-10" />
-        <circle cx="524" cy="370" r="4" />
       </g>
-      <g fill={W} fontFamily="IBM Plex Mono, monospace" fontSize="12">
-        <text x="188" y="112">
-          HYPERSCALE DATA HALL
-        </text>
-        <text x="272" y="127">
-          PROPOSED
-        </text>
-        <text x="90" y="493">
-          12 m — NEAREST HOME
-        </text>
-        <text x="718" y="350" transform="rotate(-90 718 350)">
-          HEIGHT: 38 m [VERIFY]
-        </text>
-        <text x="414" y="417">
-          WATER DRAW: [VERIFY] L/DAY
-        </text>
-        <text x="554" y="403" fill="#FF7A1A">
-          BARANGAY HOMES
-        </text>
-      </g>
-      <g fill="none" stroke="#7DB35F" strokeWidth="2">
-        <path d="M124 406v-24m0 8c-12-9-22-5-27 3 12 5 21 4 27-3Zm0 0c11-9 21-5 26 3-12 5-20 4-26-3Z" />
+      <g opacity="0.55">
+        {[
+          [18, 52],
+          [118, 68],
+          [218, 44],
+          [318, 62],
+          [418, 38],
+          [518, 58],
+          [618, 46],
+          [718, 66],
+          [818, 42],
+          [918, 60],
+          [1018, 36],
+          [1118, 64],
+          [1218, 48],
+          [1318, 60],
+          [1418, 42],
+        ].map(([x, y], i) => (
+          <use
+            key={i}
+            href="#finale-crowd-figure"
+            x={x}
+            y={y}
+            width="90"
+            height="130"
+            opacity={i % 3 === 0 ? 0.85 : 0.6}
+          />
+        ))}
       </g>
     </svg>
   );
 }
 
-function OpeningGate({ onOpen }: { onOpen: () => void }) {
+function FooterWatermark() {
+  return <LogoImage className="footer-watermark" decorative />;
+}
+
+function HeroBlueprintFigure() {
+  const A: [number, number] = [200, 232];
+  const B: [number, number] = [520, 96];
+  const E: [number, number] = [832, 226];
+  const D: [number, number] = [506, 366];
+
+  const topPoint = (u: number, v: number): [number, number] => [
+    A[0] + (B[0] - A[0]) * u + (D[0] - A[0]) * v,
+    A[1] + (B[1] - A[1]) * u + (D[1] - A[1]) * v,
+  ];
+  const lerp = (a: [number, number], b: [number, number], t: number): [number, number] => [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+  ];
+  const fmt = (p: [number, number]) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
+  const chillers: Array<[number, number]> = [
+    [0.18, 0.24],
+    [0.45, 0.2],
+    [0.72, 0.24],
+    [0.28, 0.6],
+    [0.56, 0.58],
+    [0.8, 0.6],
+  ];
+  const houses: Array<[number, number, number]> = [
+    [82, 468, 1],
+    [144, 490, 0.86],
+    [210, 464, 0.92],
+    [116, 534, 0.78],
+    [184, 530, 0.74],
+  ];
+
+  return (
+    <svg preserveAspectRatio="xMidYMid meet"
+      className="technical-drawing hero-isometric"
+      viewBox="0 0 900 620"
+      role="img"
+      aria-label="Isometric blueprint of a hyperscale data hall, substation, water main, and nearby barangay homes"
+    >
+      <g
+        className="draw-lines"
+        fill="none"
+        stroke={C}
+        strokeWidth="1.4"
+        strokeLinejoin="miter"
+        strokeLinecap="square"
+      >
+        {/* Hyperscale data hall: opaque navy roof and walls stop wireframe bleed-through */}
+        <path
+          d={`M${fmt(A)} ${fmt(B)} ${fmt(E)} ${fmt(D)}Z`}
+          fill="#031F5A"
+          strokeWidth="2.8"
+        />
+        <path d={`M${fmt(A)} ${fmt(D)} 506 516 200 382Z`} fill="#031F5A" strokeWidth="2.2" />
+        <path d={`M${fmt(D)} ${fmt(E)} 832 376 506 516Z`} fill="#031F5A" strokeWidth="2.2" />
+
+        {/* Roof seams stay on the roof; elevation mullions stay on their walls. */}
+        {Array.from({ length: 4 }).map((_, i) => {
+          const t = (i + 1) / 5;
+          return (
+            <path
+              key={`roof-seam-${i}`}
+              d={`M${fmt(topPoint(t, 0.08))} ${fmt(topPoint(t, 0.92))}`}
+              opacity=".34"
+              strokeWidth="1"
+            />
+          );
+        })}
+        {[0.25, 0.5, 0.75].map((t, i) => (
+          <path
+            key={`front-mullion-${i}`}
+            d={`M${fmt(topPoint(t, 1))} ${fmt(lerp([200, 382], [506, 516], t))}`}
+            opacity=".42"
+            strokeWidth="1.1"
+          />
+        ))}
+        {[0.33, 0.66].map((t, i) => (
+          <path
+            key={`side-mullion-${i}`}
+            d={`M${fmt(lerp(D, E, t))} ${fmt(lerp([506, 516], [832, 376], t))}`}
+            opacity=".36"
+            strokeWidth="1.1"
+          />
+        ))}
+
+        {/* Tidy rooftop chiller banks with two louvers each */}
+        {chillers.map(([u, v], i) => {
+          const p = topPoint(u, v);
+          return (
+            <g key={`chiller-${i}`} transform={`translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})`}>
+              <path d="M-22 0 0-10 24 0 0 10Z" fill="#031F5A" strokeWidth="1.6" />
+              <path d="M-22 0v8l22 9V10M0 10l24-10v8L0 18" fill="#031F5A" strokeWidth="1.3" />
+              <path d="M-12-1 0-6M-3 3 10-3" opacity=".5" strokeWidth="1" />
+            </g>
+          );
+        })}
+
+        {/* Three clean exhaust stacks, no tangled service lines */}
+        {[0.2, 0.5, 0.8].map((t, i) => {
+          const p = lerp(B, E, t);
+          return (
+            <g key={`stack-${i}`} transform={`translate(${p[0].toFixed(1)} ${p[1].toFixed(1)})`}>
+              <path d="M-10 0 0-5 12 0 2 5Z" fill="#031F5A" strokeWidth="1.5" />
+              <path d="M-10 0v-62l12 5V0M2-57l10 5v62" fill="#031F5A" strokeWidth="1.5" />
+              <path d="M-7-14l8 4m-8 11 8 4m-8 11 8 4" opacity=".6" strokeWidth="1.2" />
+            </g>
+          );
+        })}
+
+        {/* Compact electrical substation on the right */}
+        <path d="M638 412 736 368l92 38-98 46Z" fill="#031F5A" strokeWidth="2" />
+        <path d="M638 412v62l92 44v-62M730 452l98-46v60l-98 52" fill="#031F5A" strokeWidth="1.9" />
+        <path d="M660 420h28v38h-28zM704 400h28v40h-28z" fill="#031F5A" strokeWidth="1.4" />
+        <path d="M674 420v38m-14-19h28M718 400v40m-14-20h28" opacity=".55" strokeWidth="1" />
+        <path d="M758 370v-34m-9 0h18m-13 8h8m-11 8h14" strokeWidth="1.8" />
+        <path
+          d="m790 418 14-18-5 19 14-4-18 26 5-20Z"
+          fill="var(--orange)"
+          stroke="var(--orange)"
+          strokeWidth="1.6"
+        />
+
+        {/* One underground water main with neat direction arrows */}
+        <path d="M92 566h680" stroke="#031F5A" strokeWidth="16" opacity=".92" />
+        <path d="M92 566h680" strokeWidth="2.2" strokeDasharray="20 8" />
+        <path d="M552 566V452m84 114V438" strokeWidth="1.8" opacity=".7" />
+        <path
+          d="m278 566 14-7m-14 7 14 7m168-7 14-7m-14 7 14 7m192-7 14-7m-14 7 14 7"
+          stroke="var(--orange)"
+          strokeWidth="2.6"
+        />
+
+        {/* Filipino barangay houses: pitched roofs, doors, windows, solid occlusion */}
+        {houses.map(([x, y, s], i) => (
+          <g key={`house-${i}`} transform={`translate(${x} ${y}) scale(${s})`}>
+            <path d="M0 24 32 7 66 24v54H0Z" fill="#031F5A" strokeWidth="1.7" />
+            <path d="M-6 25 32 0l40 25-8 6-32-21-32 21Z" fill="#031F5A" strokeWidth="1.7" />
+            <path d="M8 27l24-15m12 0 22 14" opacity=".48" strokeWidth="1" />
+            <path d="M13 40h13v14H13zM42 40h12v14H42z" fill="#031F5A" strokeWidth="1.2" />
+            <path d="M28 78V56h12v22" fill="#031F5A" strokeWidth="1.2" />
+          </g>
+        ))}
+
+        {/* Single utility pole with restrained service drops */}
+        <path d="M330 382v166M318 398h24" strokeWidth="2" />
+        <path d="M318 398q-78 22-154 4M342 398q54 18 104-2" opacity=".5" strokeWidth="1.2" />
+
+        {/* Plain dimension leaders, kept clear of the callout and card title */}
+        <path d="M520 62V44M200 232h-28M862 104v318" opacity=".7" />
+        <path d="M92 594h152M640 594h152" opacity=".7" />
+      </g>
+
+      <g fill={W} fontFamily="IBM Plex Mono, monospace" fontSize="12" letterSpacing="1">
+        <text x="208" y="44">HYPERSCALE DATA HALL</text>
+        <text x="252" y="66" fill="#3FC8FF" fontSize="10">PROPOSED / [0.0 HA]</text>
+        <text x="878" y="250" transform="rotate(-90 878 250)" fontSize="10">HEIGHT [00 m]</text>
+        <text x="640" y="612" fontSize="10">WATER DRAW [0,000 L/DAY]</text>
+        <text x="36" y="616" fontSize="10">[00 m] — NEAREST HOME</text>
+        <text x="34" y="448" fill="#FF7A1A" fontSize="11">BARANGAY HOMES</text>
+        <text x="700" y="482" fontSize="10">SUBSTATION</text>
+      </g>
+    </svg>
+  );
+}
+
+function NeighborhoodScene({ stage }: { stage: number }) {
+  const homes: Array<[number, number, number]> = [
+    [74, 306, 0.92],
+    [158, 322, 0.78],
+    [246, 298, 0.86],
+    [332, 324, 0.74],
+  ];
+  const trees: Array<[number, number, number]> = [
+    [42, 372, 0.8],
+    [212, 378, 0.7],
+    [392, 382, 0.85],
+    [724, 374, 0.75],
+  ];
+
+  return (
+    <svg preserveAspectRatio="xMidYMid meet"
+      className="neighborhood-scene"
+      viewBox="0 0 760 520"
+      data-stage={stage}
+      role="img"
+      aria-label={`Neighborhood conditions at project stage ${stage + 1}`}
+    >
+      <g className="scene-grid" fill="none" stroke={C} strokeWidth="0.7" opacity="0.18">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <path key={`ng-v-${i}`} d={`M${i * 80 + 20} 20v480`} />
+        ))}
+        {Array.from({ length: 7 }).map((_, i) => (
+          <path key={`ng-h-${i}`} d={`M20 ${i * 80 + 30}h720`} />
+        ))}
+      </g>
+
+      <g className="scene-base" fill="none" stroke={C} strokeWidth="1.5">
+        <path d="M20 30h720v462H20z" opacity="0.35" />
+        <path d="M20 402h720M20 394v16m720-16v16" strokeWidth="2.2" />
+        <path d="M54 402h652" strokeDasharray="24 18" opacity="0.7" />
+        <path
+          d="M10 462c78-22 132 18 208-4s126-22 194 4 139 23 208-2 108-8 130 2"
+          stroke="#7DB35F"
+          strokeWidth="3"
+        />
+        <path
+          d="M10 478c82-24 140 18 219-3s129-22 198 4 142 22 213-3 94-7 120 1"
+          stroke="#7DB35F"
+          strokeDasharray="8 7"
+          opacity="0.6"
+        />
+        <text x="24" y="499" fill="#7DB35F" stroke="none" fontFamily="IBM Plex Mono" fontSize="10">
+          SHARED AQUIFER / [00 m]
+        </text>
+
+        {homes.map(([x, y, s], i) => (
+          <g key={`home-${i}`} transform={`translate(${x} ${y}) scale(${s})`}>
+            <path d="M0 24 34 4l36 20v58H0Z" fill="#031F5A" />
+            <path d="M-6 25 34-3l40 28-8 6-32-22-30 22Z" fill="#031F5A" />
+            <path d="M-2 32 34 11l34 21M9 29l25-16 23 16" opacity="0.55" />
+            <path d="M12 42h15v17H12zM43 42h14v17H43z" fill="#031F5A" />
+            <path d="M28 82V59h13v23" fill="#031F5A" />
+            <path d="M34 59v23" opacity="0.5" />
+          </g>
+        ))}
+
+        {trees.map(([x, y, s], i) => (
+          <g key={`tree-${i}`} transform={`translate(${x} ${y}) scale(${s})`}>
+            <path d="M0 0v-38m0 20-15-18m15 10 16-20" />
+            <path d="M0-38c-13 0-22 9-20 20-10 4-13 17-3 23 3 9 17 11 23 4 11 5 23-2 21-13 8-7 3-19-7-20-1-8-7-14-14-14Z" fill="#031F5A" />
+          </g>
+        ))}
+
+        <path d="M382 196v190M368 216h28M364 244h36" strokeWidth="2.2" />
+        <path d="M366 216q-110 28-208 8M398 216q94 26 168-4" opacity="0.85" />
+        <path d="M368 244q-94 32-180 12M396 244q80 26 148 4" opacity="0.6" />
+
+        <path d="M438 306 608 220l116 50-170 88Z" fill="#031F5A" opacity="0.86" strokeDasharray="9 7" />
+        <path d="M438 306v54l116 58v-60M724 270v58l-170 90" opacity="0.45" />
+        <path d="M480 288h104m-92 18h88m-78 18h68" opacity="0.45" />
+        <text x="472" y="204" fill={C} stroke="none" fontFamily="IBM Plex Mono" fontSize="10">
+          PROJECT PARCEL / [0.0 HA]
+        </text>
+      </g>
+
+      <g className="scene-construction" fill="none" stroke="#FF7A1A" strokeWidth="1.8">
+        <path d="M424 318 610 224l140 60-186 96Z" fill="#031F5A" strokeDasharray="6 6" />
+        {Array.from({ length: 9 }).map((_, i) => (
+          <path key={`cf-${i}`} d={`M${438 + i * 36} ${310 - i * 9}v22`} opacity="0.8" />
+        ))}
+        <path d="M596 300V126m-16 0h32M596 126 706 90M596 126l-78-30M584 150h24M584 190h24M584 230h24" />
+        <path d="M596 126 706 90m-110 36 70 30M688 94v14m-92 40 58 25" strokeWidth="1.2" />
+        <path d="M706 90v62m-14 0h28" />
+        <path d="M672 152v-26h28v26M676 126v-10h20v10" fill="#031F5A" />
+        <path d="M484 320h92l-12 42h-68Z" fill="#031F5A" />
+        <path d="M500 320 486 292h42l14 28M548 320l18-22" fill="#031F5A" />
+        <path d="M476 362h108m-96 0v18m86-18v18" fill="#031F5A" />
+        <path d="M246 368h88l14 28H232Z" fill="#031F5A" />
+        <path d="M268 368v-28h42v28M234 396h102" fill="#031F5A" />
+        <circle cx="254" cy="400" r="9" />
+        <circle cx="318" cy="400" r="9" />
+        <path d="M292 340h18M284 350h34" opacity="0.7" />
+        <path
+          d="M456 278c18-16 34 8 52-7s34 4 50-9m-72 78c14-11 26 5 40-5s25 3 38-6"
+          opacity="0.7"
+        />
+        <text x="438" y="348" fill="#FF7A1A" stroke="none" fontFamily="IBM Plex Mono" fontSize="10">
+          EXCAVATION / [00.0 M]
+        </text>
+      </g>
+
+      <g className="scene-utilities" fill="none" stroke="#FF7A1A" strokeWidth="1.8">
+        <path d="M640 318h80v52h-80z" fill="#031F5A" />
+        <path d="M652 318v52m16-52v52m16-52v52m16-52v52" opacity="0.7" />
+        <path d="M656 306v12m48-12v12M664 300h32" />
+        <path d="m708 332 12-12-4 16 12-4-16 22 4-18Z" fill="#031F5A" />
+        <path d="M382 196q-92 54-198 22M398 196q96 52 172 16" strokeDasharray="4 5" />
+        <path d="M188 370h94l12 30H176Z" fill="#031F5A" />
+        <circle cx="196" cy="404" r="10" fill="#031F5A" />
+        <circle cx="274" cy="404" r="10" fill="#031F5A" />
+        <path d="M206 370v-22h52v22M214 348h36" fill="#031F5A" />
+        <path d="M274 340h44v30h-44z" fill="#031F5A" />
+        <path d="M282 348h28m-28 10h28m-28 8h18" opacity="0.7" />
+        <path d="M92 292h34v26H92zM306 300h32v24h-32z" fill="#031F5A" />
+        <path d="M104 298v14m-6-7h12M318 306v12m-6-6h12" />
+        <path d="M448 380c54-12 108-12 162 0" strokeDasharray="12 8" />
+        <path d="m548 380 12-7m-12 7 12 7" />
+        <text x="186" y="332" fill="#FF7A1A" stroke="none" fontFamily="IBM Plex Mono" fontSize="10">
+          WATER TRUCK / [00 TRIPS]
+        </text>
+        <text x="640" y="388" fill="#FF7A1A" stroke="none" fontFamily="IBM Plex Mono" fontSize="10">
+          LOAD [00.0 MW]
+        </text>
+      </g>
+
+      <g className="scene-damage" fill="none" stroke="#FF7A1A" strokeWidth="2">
+        <path d="M20 462c78-22 132 18 208-4s126-22 194 4 139 23 208-2 108-8 130 2" opacity="0.85" />
+        <path d="M10 486c86-12 140 8 218-10s132-8 200 8 142 10 212-8 94-4 120 4" opacity="0.7" />
+        <path d="M118 448l16 18-10 14 24 16-8 20m292-70-14 20 18 12-12 18 20 14" />
+        <path d="M250 456v-26l-16-12m16 12 16-14" />
+        <path d="M606 258V172m-12 0h24m-18 22h12m-14 22h16" />
+        <path d="M668 240V146m-12 0h24m-18 24h12m-15 24h18" />
+        <path d="M594 172c-18-22 14-34 4-54m58-26c-18-22 14-34 4-54" opacity="0.65" />
+        <path d="M74 282 34 242m0 40 40-40M158 300l-30-32m0 32 30-32" strokeWidth="3" />
+        <path d="M42 334c-10-10-14-22-8-34 8 6 13 18 8 34Zm0 0c10-12 22-16 32-10-8 9-19 14-32 10Z" stroke="#7DB35F" />
+        <path d="M724 336c-8-12-8-24 0-34 6 8 7 20 0 34Zm0 0c12-8 24-8 32 0-10 6-21 7-32 0Z" stroke="#7DB35F" />
+        <path d="M450 414c26-12 52-12 78 0s52 12 78 0 52-12 78 0" opacity="0.7" />
+        <path d="M464 432c24-10 48-10 72 0s48 10 72 0 48-10 72 0" opacity="0.45" />
+        <text x="444" y="456" fill="#FF7A1A" stroke="none" fontFamily="IBM Plex Mono" fontSize="10">
+          HEAT ISLAND / [00.0 °C]
+        </text>
+      </g>
+    </svg>
+  );
+}
+
+function OpeningGate({
+  onOpen,
+  onStart,
+  onUnrolled,
+  handoff,
+  figureRef,
+}: {
+  onOpen: () => void;
+  onStart: () => void;
+  onUnrolled: () => void;
+  handoff: boolean;
+  figureRef: React.RefObject<HTMLDivElement | null>;
+}) {
   const [opening, setOpening] = useState(false);
   const open = () => {
     setOpening(true);
-    window.setTimeout(onOpen, 3100);
+    onStart();
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) window.setTimeout(onOpen, 260);
+    else window.setTimeout(onUnrolled, 2600);
   };
   return (
-    <div className={`opening-gate ${opening ? "is-opening" : ""}`}>
+    <div
+      className={`opening-gate ${opening ? "is-opening" : ""} ${handoff ? "is-handoff" : ""}`}
+    >
       <button className="gate-trigger" onClick={open} disabled={opening} aria-label="Open the plan">
         <span className="pulse-cross">+</span>
-        <img
-          className="gate-logo original-logo"
-          src="/no-pax-logo.webp"
-          alt="Water drop, server stack and sprout logo"
-        />
-        <span>{opening ? "UNROLLING DRAWING SET…" : "OPEN THE PLAN ▸"}</span>
+        <LogoImage className="gate-logo" />
+        <span className="gate-trigger-label">
+          {opening ? "UNROLLING DRAWING SET…" : "OPEN THE PLAN ▸"}
+        </span>
         <small>PUBLIC REVIEW COPY · REV 00</small>
       </button>
-      <div className="unroll-sheet" aria-hidden="true">
-        <div className="unroll-copy">
-          <DataCenterDrawing />
-          <b>PROPOSED / NOT APPROVED</b>
+      <div className="unroll-stage" aria-hidden="true">
+        <div className="unroll-sheet">
+          <div className="unroll-copy">
+            <div className="unroll-figure" ref={figureRef}>
+              <HeroBlueprintFigure />
+            </div>
+            <b>PROPOSED / NOT APPROVED</b>
+            <LogoImage className="gate-logo unroll-logo" decorative />
+          </div>
         </div>
-        <span className="paper-curl" />
+        <span className="unroll-roll" />
       </div>
     </div>
   );
 }
 
 const realityPairs = [
-  [
-    "Economic growth & tech hub status",
-    "Tax incentives can outweigh public gains. Permanent jobs may number only in the tens. [VERIFY]",
-  ],
-  [
-    "Reliable digital infrastructure",
-    "Grid demand may compete with homes during peak hours and raise system costs. [VERIFY]",
-  ],
-  [
-    "Efficient, modern facilities",
-    "Cooling can require millions of liters of water each day. [VERIFY]",
-  ],
-  [
-    "Quiet, low-impact neighbors",
-    "Backup generators, cooling fans and 24/7 truck traffic are industrial activities.",
-  ],
-  [
-    "More investment for the LGU",
-    "Public costs can include roads, substations, water systems and emergency capacity.",
-  ],
-  [
-    "A greener digital future",
-    "Embodied carbon, diesel backup and e-waste remain outside many project claims. [VERIFY]",
-  ],
+  ["[INSERT CLAIM — 1 LINE]", "[INSERT FIELD NOTE — 2–3 LINES]"],
+  ["[INSERT CLAIM — 1 LINE]", "[INSERT FIELD NOTE — 2–3 LINES]"],
+  ["[INSERT CLAIM — 1 LINE]", "[INSERT FIELD NOTE — 2–3 LINES]"],
+  ["[INSERT CLAIM — 1 LINE]", "[INSERT FIELD NOTE — 2–3 LINES]"],
+  ["[INSERT CLAIM — 1 LINE]", "[INSERT FIELD NOTE — 2–3 LINES]"],
+  ["[INSERT CLAIM — 1 LINE]", "[INSERT FIELD NOTE — 2–3 LINES]"],
 ];
 
-const cases = [
+function RealityFlashcard({
+  index,
+  depth,
+  onZoom,
+}: {
+  index: number;
+  depth: number;
+  onZoom: () => void;
+}) {
+  const folio = String(index + 1).padStart(2, "0");
+  const tilt = [-1.1, 0.8, -0.7, 1.1, -0.4, 0.6][index % 6];
+  return (
+    <article
+      className={`flashcard-card ${depth === 0 ? "active" : ""}`}
+      aria-hidden={depth !== 0}
+      style={
+        {
+          "--depth": depth,
+          "--card-tilt": `${tilt}deg`,
+        } as React.CSSProperties
+      }
+    >
+      <header className="flashcard-header">
+        <small>PAX SILICA · PROJECT BRIEF</small>
+        <span>P.{folio}</span>
+      </header>
+      <section className="flashcard-side flashcard-claim">
+        <p>WHAT THEY SAY</p>
+        <h3>“{realityPairs[index][0]}”</h3>
+      </section>
+      <div className="flashcard-gutter" aria-hidden="true">
+        <span>REVERSE / FIELD CONDITION</span>
+      </div>
+      <section className="flashcard-side flashcard-field">
+        <span className="field-tag">FIELD CONDITION / P.{folio}</span>
+        <p>WHAT'S ON THE GROUND</p>
+        <h3>{realityPairs[index][1]}</h3>
+        <small>[SOURCE · YEAR]</small>
+      </section>
+      <button
+        type="button"
+        className="flashcard-zoom-hit"
+        onClick={onZoom}
+        aria-label={`Zoom claim and field condition card ${folio}`}
+      >
+        <span className="flashcard-zoom-cue">CLICK TO ZOOM ↗</span>
+      </button>
+    </article>
+  );
+}
+
+type CaseStudy = {
+  name: string;
+  x: number;
+  y: number;
+  stat: string;
+  note: string;
+  labelOffset?: [number, number];
+};
+
+const cases: CaseStudy[] = [
   {
     name: "Ireland",
     x: 47,
     y: 27,
-    stat: "21%",
-    note: "Share of metered electricity used by data centers in 2023. [VERIFY WITH SOURCE]",
+    stat: "[00.0 %]",
+    note: "[INSERT CASE NOTE — 2 LINES]",
+    labelOffset: [16, -28],
   },
   {
     name: "Virginia, US",
     x: 24,
     y: 35,
-    stat: "35 GW",
-    note: "Projected regional peak demand pressure. [VERIFY WITH SOURCE]",
+    stat: "[00.0 GW]",
+    note: "[INSERT CASE NOTE — 2 LINES]",
   },
   {
     name: "Arizona, US",
     x: 17,
     y: 45,
-    stat: "Water stress",
-    note: "New projects face scrutiny in arid communities. [VERIFY WITH SOURCE]",
+    stat: "[00.0 L]",
+    note: "[INSERT CASE NOTE — 2 LINES]",
   },
   {
     name: "Netherlands",
     x: 51,
     y: 29,
-    stat: "9 months",
-    note: "Temporary hyperscale permitting pause. [VERIFY WITH SOURCE]",
+    stat: "[00.0 MO]",
+    note: "[INSERT CASE NOTE — 2 LINES]",
+    labelOffset: [18, 30],
   },
   {
     name: "Chile",
     x: 31,
     y: 73,
-    stat: "7.6B L",
-    note: "Water-use dispute triggered redesign. [VERIFY WITH SOURCE]",
+    stat: "[00.0 B L]",
+    note: "[INSERT CASE NOTE — 2 LINES]",
   },
   {
     name: "Singapore",
     x: 79,
     y: 58,
-    stat: "3 years",
-    note: "Moratorium used to manage land and power. [VERIFY WITH SOURCE]",
+    stat: "[00.0 YR]",
+    note: "[INSERT CASE NOTE — 2 LINES]",
   },
 ];
 
@@ -304,251 +809,387 @@ type ResearchItem = {
   z: number;
 };
 
+const researchPaperLayouts = [
+  { x: 2.5, y: 95, partX: -70, partY: -36 },
+  { x: 17.8, y: 70, partX: -34, partY: -44 },
+  { x: 33.1, y: 55, partX: -12, partY: -40 },
+  { x: 47.9, y: 75, partX: 8, partY: -44 },
+  { x: 62.7, y: 100, partX: 26, partY: -40 },
+  { x: 76.3, y: 70, partX: 70, partY: -36 },
+  { x: 7.6, y: 330, partX: -150, partY: -32 },
+  { x: 15.3, y: 455, partX: -230, partY: -8 },
+  { x: 7.6, y: 580, partX: -150, partY: 24 },
+  { x: 72.5, y: 330, partX: 160, partY: -32 },
+  { x: 68.6, y: 455, partX: 188, partY: -8 },
+  { x: 72.5, y: 580, partX: 163, partY: 24 },
+  { x: 17.8, y: 575, partX: -40, partY: 140 },
+  { x: 33.1, y: 555, partX: -10, partY: 155 },
+  { x: 47.9, y: 575, partX: 10, partY: 155 },
+  { x: 62.7, y: 555, partX: 40, partY: 140 },
+];
+
 const research: ResearchItem[] = [
   {
     category: "News",
     kind: "news",
-    title: "Barangays question the true cost of hyperscale growth",
-    source: "The Daily Bulwark",
-    date: "Feb 2025",
-    note: "Residents ask who pays for new grid and water capacity. [VERIFY]",
-    x: 3,
-    y: 7,
-    w: 27,
-    r: -13,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 0,
+    y: 1,
+    w: 22,
+    r: -7,
     z: 5,
   },
   {
     category: "Academic",
     kind: "paper",
-    title: "Water intensity of cloud infrastructure",
-    source: "Journal of Water & Society",
-    date: "2024",
-    note: "Cooling choices can shift risk into stressed local watersheds. [VERIFY]",
-    x: 28,
-    y: 2,
-    w: 25,
-    r: 6,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 26,
+    y: 0,
+    w: 22,
+    r: 5,
     z: 4,
   },
   {
     category: "Policy",
     kind: "memo",
-    title: "Local guide to data center zoning",
-    source: "Public Interest Lab",
-    date: "2025",
-    note: "CONFIDENTIAL — review land use before incentives.",
-    x: 57,
-    y: 4,
-    w: 23,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 52,
+    y: 1,
+    w: 22,
     r: -4,
     z: 7,
   },
   {
     category: "News",
     kind: "xerox",
-    title: "Substations move closer to family homes",
-    source: "Energy Watch",
-    date: "Jan 2025",
-    note: "Photocopied council minutes with three pages missing.",
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
     x: 78,
-    y: 12,
-    w: 20,
-    r: 17,
+    y: 2,
+    w: 21,
+    r: 9,
     z: 3,
   },
   {
     category: "Academic",
     kind: "paper",
-    title: "Heat islands and industrial land conversion",
-    source: "Climate & Cities",
-    date: "2023",
-    note: "Highlighted finding: waste heat compounds dense urban conditions.",
-    x: 2,
-    y: 34,
-    w: 25,
-    r: 8,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 1,
+    y: 28,
+    w: 22,
+    r: 6,
     z: 6,
   },
   {
     category: "Policy",
     kind: "map",
-    title: "PROPOSED SITE / 12 m FROM HOMES",
-    source: "Barangay field map",
-    date: "Working copy",
-    note: "Folded parcel map. Red boundary added by residents.",
-    x: 72,
-    y: 35,
-    w: 27,
-    r: -9,
+    title: "[SITE REF / 00 m]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 27,
+    y: 26,
+    w: 22,
+    r: -5,
     z: 8,
   },
   {
     category: "News",
     kind: "photo",
-    title: "Konsulta muna!",
-    source: "Civic Dispatch",
-    date: "Mar 2025",
-    note: "Community meeting before the public hearing.",
-    x: 5,
-    y: 66,
-    w: 23,
-    r: -18,
-    z: 11,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 53,
+    y: 27,
+    w: 22,
+    r: 7,
+    z: 4,
   },
   {
     category: "Academic",
     kind: "paper",
-    title: "Employment footprint of hyperscale facilities",
-    source: "Digital Economy Review",
-    date: "2024",
-    note: "Construction peaks do not equal permanent local employment. [VERIFY]",
-    x: 30,
-    y: 73,
-    w: 25,
-    r: 12,
-    z: 9,
-  },
-  {
-    category: "Policy",
-    kind: "folder",
-    title: "PUBLIC RECORDS / PENDING",
-    source: "Open LGU Network",
-    date: "2025",
-    note: "Requests: ECC, CLUP, water study, incentive agreement.",
-    x: 58,
-    y: 72,
-    w: 26,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 79,
+    y: 28,
+    w: 20,
     r: -7,
-    z: 4,
-  },
-  {
-    category: "Policy",
-    kind: "sticky",
-    title: "Saan kukunin ang tubig?",
-    source: "Meeting note",
-    date: "Tonight",
-    note: "Follow up before the permit vote.",
-    x: 82,
-    y: 65,
-    w: 15,
-    r: 14,
     z: 15,
   },
   {
     category: "Policy",
-    kind: "email",
-    title: "RE: Request for full water study",
-    source: "Printed email thread",
-    date: "Apr 2025",
-    note: "Three sections were blacked out before release.",
-    x: 13,
-    y: 51,
+    kind: "folder",
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 0,
+    y: 54,
     w: 22,
-    r: 22,
-    z: 10,
+    r: -9,
+    z: 11,
+  },
+  {
+    category: "Policy",
+    kind: "sticky",
+    title: "[INSERT NOTE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 26,
+    y: 52,
+    w: 22,
+    r: 6,
+    z: 9,
+  },
+  {
+    category: "Policy",
+    kind: "email",
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 52,
+    y: 53,
+    w: 22,
+    r: -5,
+    z: 4,
   },
   {
     category: "Academic",
     kind: "notebook",
-    title: "Noise → sleep → health?",
-    source: "Field notebook No. 4",
-    date: "Site visit",
-    note: "Measure generator test after 10 PM. Ask families on east road.",
-    x: 36,
-    y: 58,
-    w: 21,
-    r: -19,
-    z: 14,
+    title: "[INSERT FIELD NOTE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 78,
+    y: 54,
+    w: 19,
+    r: 8,
+    z: 15,
   },
   {
     category: "News",
     kind: "bill",
-    title: "MERALCO / AMOUNT DUE ₱7,184",
-    source: "Household utility bill",
-    date: "Sample [VERIFY]",
-    note: "Why should residents carry new grid costs?",
-    x: 63,
-    y: 54,
-    w: 18,
+    title: "[PHP 0,000]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 1,
+    y: 80,
+    w: 22,
     r: 10,
-    z: 13,
+    z: 10,
   },
   {
     category: "News",
     kind: "news",
-    title: "Power queue grows as projects multiply",
-    source: "The Manila Ledger",
-    date: "May 2025",
-    note: "Grid planners warn the public data is incomplete. [VERIFY]",
-    x: 2,
-    y: 84,
-    w: 28,
-    r: -5,
-    z: 2,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 27,
+    y: 78,
+    w: 22,
+    r: -8,
+    z: 14,
   },
   {
     category: "Policy",
     kind: "memo",
-    title: "ECC is not a zoning permit",
-    source: "Office of Civic Review",
-    date: "Brief 07",
-    note: "One approval cannot substitute for every other legal duty.",
-    x: 38,
-    y: 86,
-    w: 25,
-    r: 4,
-    z: 5,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 53,
+    y: 79,
+    w: 22,
+    r: 6,
+    z: 13,
   },
   {
     category: "Academic",
     kind: "photo",
-    title: "The street at 4:30 PM",
-    source: "Community documentation",
-    date: "2025",
-    note: "Children and commuters share the proposed truck route.",
-    x: 71,
-    y: 83,
-    w: 24,
-    r: 19,
-    z: 12,
+    title: "[INSERT ARTICLE HEADLINE]",
+    source: "[SOURCE]",
+    date: "[YEAR]",
+    note: "[INSERT EXCERPT — 2 LINES]",
+    x: 79,
+    y: 80,
+    w: 22,
+    r: -5,
+    z: 2,
   },
 ];
 
-const myths = [
-  [
-    "Data centers create thousands of local tech jobs.",
-    "Once built, hyperscale facilities typically employ a small specialized crew. [VERIFY]",
-  ],
-  [
-    "They use no more water than an office building.",
-    "Evaporative cooling can draw millions of liters per day depending on design. [VERIFY]",
-  ],
-  [
-    "Residential zoning is flexible enough.",
-    "Industrial-scale noise, power and water demand require specific review and safeguards.",
-  ],
-  [
-    "The cloud has no local footprint.",
-    "Every online service runs on physical buildings, substations, pipes and generators.",
-  ],
-  [
-    "An ECC guarantees zero harm.",
-    "An ECC sets conditions; it does not replace zoning, monitoring or public accountability.",
-  ],
-  [
-    "Only nearby homeowners are affected.",
-    "Grid and watershed impacts can cross barangay and city boundaries.",
-  ],
+type MythItem = {
+  claim: string;
+  fact: string;
+  source: string;
+};
+
+const myths: MythItem[] = [
+  { claim: "[INSERT MYTH CLAIM — 1 LINE]", fact: "[INSERT FACT SUMMARY — 2 LINES]", source: "[SOURCE · YEAR]" },
+  { claim: "[INSERT MYTH CLAIM — 1 LINE]", fact: "[INSERT FACT SUMMARY — 2 LINES]", source: "[SOURCE · YEAR]" },
+  { claim: "[INSERT MYTH CLAIM — 1 LINE]", fact: "[INSERT FACT SUMMARY — 2 LINES]", source: "[SOURCE · YEAR]" },
+  { claim: "[INSERT MYTH CLAIM — 1 LINE]", fact: "[INSERT FACT SUMMARY — 2 LINES]", source: "[SOURCE · YEAR]" },
+  { claim: "[INSERT MYTH CLAIM — 1 LINE]", fact: "[INSERT FACT SUMMARY — 2 LINES]", source: "[SOURCE · YEAR]" },
+  { claim: "[INSERT MYTH CLAIM — 1 LINE]", fact: "[INSERT FACT SUMMARY — 2 LINES]", source: "[SOURCE · YEAR]" },
 ];
+
+function useFlipSpring(target: number) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  const motionRef = useRef({ angle: 0, velocity: 0, target: 0 });
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const motion = motionRef.current;
+    const element = elementRef.current;
+    if (!element) return;
+
+    motion.target = target;
+    const write = () => {
+      element.style.setProperty("--flip-angle", `${motion.angle.toFixed(2)}deg`);
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+      motion.angle = target;
+      motion.velocity = 0;
+      write();
+      return;
+    }
+
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min((now - last) / 1000, 1 / 30);
+      last = now;
+      const displacement = motion.angle - motion.target;
+      const acceleration = -220 * displacement - 24 * motion.velocity;
+      motion.velocity += acceleration * dt;
+      motion.angle += motion.velocity * dt;
+
+      if (Math.abs(motion.target - motion.angle) < 0.08 && Math.abs(motion.velocity) < 0.08) {
+        motion.angle = motion.target;
+        motion.velocity = 0;
+        write();
+        frameRef.current = null;
+        return;
+      }
+
+      write();
+      frameRef.current = requestAnimationFrame(step);
+    };
+
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(step);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    };
+  }, [target]);
+
+  return elementRef;
+}
+
+function MythFlipCard({
+  item,
+  index,
+  flipped,
+  onFlip,
+  onExpand,
+}: {
+  item: MythItem;
+  index: number;
+  flipped: boolean;
+  onFlip: () => void;
+  onExpand: () => void;
+}) {
+  const innerRef = useFlipSpring(flipped ? 180 : 0);
+  const stopAndExpand = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onExpand();
+  };
+
+  return (
+    <article className={`myth-card ${flipped ? "is-flipped" : ""}`}>
+      <div
+        ref={innerRef}
+        className="myth-card-inner"
+        role="button"
+        tabIndex={0}
+        aria-pressed={flipped}
+        aria-label={`Flip myth card ${index + 1} ${flipped ? "back to the claim" : "to reveal the field note"}`}
+        onClick={onFlip}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onFlip();
+          }
+        }}
+      >
+        <div className="myth-face myth-face-front" aria-hidden={flipped}>
+          <span className="myth-stamp">MYTH</span>
+          <b className="myth-prompt">{item.claim}</b>
+          <small className="myth-cta">CLICK CARD TO FLIP</small>
+          <button
+            type="button"
+            className="myth-expand myth-expand-front"
+            aria-haspopup="dialog"
+            tabIndex={flipped ? -1 : 0}
+            onClick={stopAndExpand}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            EXPAND ↗
+          </button>
+        </div>
+        <div className="myth-face myth-face-back" aria-hidden={!flipped}>
+          <span className="myth-stamp fact-stamp">FACT</span>
+          <b className="myth-prompt">{item.fact}</b>
+          <small className="myth-cta">{item.source}</small>
+          <button
+            type="button"
+            className="myth-expand myth-expand-back"
+            aria-haspopup="dialog"
+            tabIndex={flipped ? 0 : -1}
+            onClick={stopAndExpand}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            EXPAND / READ FULL FACT ↗
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function App() {
   const [entered, setEntered] = useState(false);
+  const [gateOpening, setGateOpening] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const [hotspot, setHotspot] = useState(0);
   const [reality, setReality] = useState(0);
-  const [flipping, setFlipping] = useState(false);
+  const [kitStatus, setKitStatus] = useState<number | null>(null);
   const [scenario, setScenario] = useState(0);
   const [selectedCase, setSelectedCase] = useState(cases[0]);
   const [centers, setCenters] = useState(3);
@@ -561,14 +1202,30 @@ export default function App() {
   );
   const [letterOpen, setLetterOpen] = useState(false);
   const [policy, setPolicy] = useState(0);
-  const [flippedMyths, setFlippedMyths] = useState<number[]>([]);
+  const [activeMyth, setActiveMyth] = useState<number | null>(null);
+  const [flippedMyth, setFlippedMyth] = useState<number | null>(null);
+  const [zoomedReality, setZoomedReality] = useState<number | null>(null);
   const [stories, setStories] = useState(127);
   const [storyStatus, setStoryStatus] = useState("");
   const [signatures, setSignatures] = useState(18427);
   const [petitionStatus, setPetitionStatus] = useState("");
   const [recipient, setRecipient] = useState("Mayor");
   const [copied, setCopied] = useState(false);
+  const [flight, setFlight] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    dx: number;
+    dy: number;
+    scale: number;
+  } | null>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const protestAudioRef = useRef<HTMLAudioElement>(null);
+  const unrollFigureRef = useRef<HTMLDivElement>(null);
+  const heroFigureSlotRef = useRef<HTMLDivElement>(null);
+  const flightRef = useRef<HTMLDivElement>(null);
+  const flightDoneRef = useRef(false);
   const dragRef = useRef<{
     id: number;
     startX: number;
@@ -577,6 +1234,8 @@ export default function App() {
     baseY: number;
     moved: boolean;
   } | null>(null);
+  const mythCloseRef = useRef<HTMLButtonElement>(null);
+  const realityCloseRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const move = (e: globalThis.MouseEvent) => {
@@ -592,6 +1251,88 @@ export default function App() {
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
+  useEffect(() => {
+    const audio = protestAudioRef.current;
+    if (!audio) return;
+    audio.volume = 0.55;
+    if (soundOn) {
+      void audio.play().catch(() => {});
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [soundOn]);
+
+  useEffect(() => {
+    if (activeMyth === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveMyth(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    mythCloseRef.current?.focus();
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeMyth]);
+
+  useEffect(() => {
+    if (zoomedReality === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setZoomedReality(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    realityCloseRef.current?.focus();
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [zoomedReality]);
+
+  const beginFigureHandoff = () => {
+    flightDoneRef.current = false;
+    const fromEl = unrollFigureRef.current;
+    const toEl = heroFigureSlotRef.current;
+    if (!fromEl || !toEl || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setEntered(true);
+      return;
+    }
+    const from = fromEl.getBoundingClientRect();
+    const to = toEl.getBoundingClientRect();
+    if (!from.width || !from.height || !to.width || !to.height) {
+      setEntered(true);
+      return;
+    }
+    const scale = Math.min(to.width / from.width, to.height / from.height);
+    setFlight({
+      left: from.left,
+      top: from.top,
+      width: from.width,
+      height: from.height,
+      dx: to.left + (to.width - from.width * scale) / 2 - from.left,
+      dy: to.top + (to.height - from.height * scale) / 2 - from.top,
+      scale,
+    });
+  };
+
+  const finishFigureHandoff = useCallback(() => {
+    if (flightDoneRef.current) return;
+    flightDoneRef.current = true;
+    setFlight(null);
+    setEntered(true);
+  }, []);
+
+  useEffect(() => {
+    if (!flight || !flightRef.current) return;
+    const el = flightRef.current;
+    let inner = 0;
+    const outer = window.requestAnimationFrame(() => {
+      inner = window.requestAnimationFrame(() => {
+        el.style.transform = `translate3d(${flight.dx}px, ${flight.dy}px, 0) scale(${flight.scale})`;
+      });
+    });
+    const fallback = window.setTimeout(finishFigureHandoff, 900);
+    return () => {
+      window.cancelAnimationFrame(outer);
+      window.cancelAnimationFrame(inner);
+      window.clearTimeout(fallback);
+    };
+  }, [flight, finishFigureHandoff]);
+
   const meters = [
     { name: "NOISE", value: [82, 67, 58][scenario], unit: "dB" },
     { name: "WATER LEVEL", value: [92, 69, 41][scenario], unit: "%" },
@@ -606,32 +1347,26 @@ export default function App() {
     () => Math.round(centers * 18500 * (population / 50)),
     [centers, population],
   );
-  const emailText = `Dear ${recipient},\n\nWe ask your office to require full disclosure, lawful zoning review, and meaningful public consultation before any hyperscale data center is approved near our homes.\n\nPlease publish the site plan, ECC, water and grid studies, and all incentive agreements.\n\nBahay namin, hindi industrial zone.`;
-
-  const nextReality = () => {
-    setFlipping(true);
-    window.setTimeout(() => {
-      setReality((reality + 1) % realityPairs.length);
-      setFlipping(false);
-    }, 320);
-  };
+  const emailText = `[INSERT LETTER BODY — 5 LINES]\n\n[RECIPIENT: ${recipient}]\n\n[INSERT CLOSING — 1 LINE]`;
+  const selectedPinX = (selectedCase.x / 100) * 900;
+  const selectedPinY = (selectedCase.y / 100) * 460;
+  const totalRealityCards = realityPairs.length;
+  const nextReality = () => setReality((current) => (current + 1) % totalRealityCards);
+  const previousReality = () =>
+    setReality((current) => (current - 1 + totalRealityCards) % totalRealityCards);
   const playStamp = () => {
     if (!soundOn) return;
-    const AudioCtx =
-      window.AudioContext ||
-      (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "square";
-    osc.frequency.setValueAtTime(95, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(42, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.11);
+    const audio = protestAudioRef.current;
+    if (!audio || !audio.paused) return;
+    void audio.play().catch(() => {});
+  };
+  const flipMyth = (index: number) => {
+    playStamp();
+    setFlippedMyth((current) => (current === index ? null : index));
+  };
+  const expandMyth = (index: number) => {
+    playStamp();
+    setActiveMyth(index);
   };
   const dragPaper = (e: React.PointerEvent<HTMLButtonElement>, id: number) => {
     if (!dragRef.current || dragRef.current.id !== id) return;
@@ -645,26 +1380,69 @@ export default function App() {
   };
   const submitStory = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!e.currentTarget.checkValidity()) return;
+    if (!e.currentTarget.reportValidity()) return;
     setStories(stories + 1);
     setStoryStatus("Salamat. Your story is queued for community review.");
     e.currentTarget.reset();
   };
   const submitPetition = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!e.currentTarget.checkValidity()) return;
+    if (!e.currentTarget.reportValidity()) return;
     setSignatures(signatures + 1);
     setPetitionStatus("Signature recorded in this prototype. Salamat!");
     e.currentTarget.reset();
   };
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    if (id === "top") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    }
     setMenuOpen(false);
   };
 
   return (
-    <div className="app">
-      {!entered && <OpeningGate onOpen={() => setEntered(true)} />}
+    <div
+      className={`app ${gateOpening ? "gate-opening" : ""} ${entered ? "gate-complete" : ""} ${
+        flight ? "figure-in-flight" : ""
+      }`}
+    >
+      <InkFilter />
+      <audio
+        ref={protestAudioRef}
+        src="/1122.mp3"
+        loop
+        preload="auto"
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+      {!entered && (
+        <OpeningGate
+          onOpen={finishFigureHandoff}
+          onStart={() => setGateOpening(true)}
+          onUnrolled={beginFigureHandoff}
+          handoff={Boolean(flight)}
+          figureRef={unrollFigureRef}
+        />
+      )}
+      {flight && (
+        <div
+          className="figure-flight"
+          ref={flightRef}
+          style={{
+            left: flight.left,
+            top: flight.top,
+            width: flight.width,
+            height: flight.height,
+          }}
+          onTransitionEnd={(event) => {
+            if (event.propertyName === "transform") finishFigureHandoff();
+          }}
+          aria-hidden="true"
+        >
+          <HeroBlueprintFigure />
+        </div>
+      )}
       <div
         className="cursor-cross"
         style={{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }}
@@ -673,21 +1451,12 @@ export default function App() {
       <div className="cursor-coords" aria-hidden="true">
         X {String(cursor.x).padStart(4, "0")} · Y {String(cursor.y).padStart(4, "0")}
       </div>
-      <button
-        className={`sound-toggle ${soundOn ? "on" : ""}`}
-        onClick={() => setSoundOn(!soundOn)}
-        aria-pressed={soundOn}
-      >
-        SOUND {soundOn ? "ON" : "OFF"}
-      </button>
-
       <nav className="nav" aria-label="Main navigation">
         <button className="brand" onClick={() => scrollTo("top")}>
-          <LogoMark />
-          <span>
-            NO TO
-            <br />
-            <b>PAX SILICA</b>
+          <LogoImage />
+          <span className="brand-wordmark">
+            <b>A DROP IN THE CLOUD</b>
+            <small>OPPOSING THE PAX SILICA PROJECT</small>
           </span>
         </button>
         <button
@@ -725,50 +1494,92 @@ export default function App() {
           </button>
         </div>
       </nav>
-      <div className="protest-ticker" aria-hidden="true">
-        <span>TUBIG • KURYENTE • LUPA • KABUHAYAN • HUWAG IPAGPALIT ANG TAHANAN •&nbsp;</span>
-        <span>TUBIG • KURYENTE • LUPA • KABUHAYAN • HUWAG IPAGPALIT ANG TAHANAN •&nbsp;</span>
+      <div className="protest-ticker">
+        <div className="ticker-track" aria-hidden="true">
+          <span>TUBIG AY BUHAY • KURYENTE SA BAYAN • LUPA NAMIN ITO • KABUHAYAN AY IPAGLABAN • KONSULTA MUNA • HUWAG IPAGPALIT ANG TAHANAN • WALANG KONSULTASYON, WALANG PAX SILICA • NO TO PAX SILICA •&nbsp;</span>
+          <span>TUBIG AY BUHAY • KURYENTE SA BAYAN • LUPA NAMIN ITO • KABUHAYAN AY IPAGLABAN • KONSULTA MUNA • HUWAG IPAGPALIT ANG TAHANAN • WALANG KONSULTASYON, WALANG PAX SILICA • NO TO PAX SILICA •&nbsp;</span>
+        </div>
+        <button
+          className={`sound-toggle ${soundOn ? "on" : ""}`}
+          onClick={() => setSoundOn((on) => !on)}
+          aria-pressed={soundOn}
+        >
+          SOUND {soundOn ? "ON" : "OFF"}
+        </button>
       </div>
 
       <main id="top">
-        <section className="hero blueprint-section" ref={heroRef}>
+        <div className="world-one blueprint-surface">
+          <section className="hero blueprint-section" ref={heroRef}>
           <DraftMarks sheet="A-001" />
-          <ProtestMarks />
-          <div className="hero-placard placard-one">
-            TUBIG
-            <br />
-            NAMIN ITO!
+          <span className="hero-grain" aria-hidden="true" />
+          <ProtestMarks hero />
+          <div className="hero-placard placard-one hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "520ms" } as React.CSSProperties}>
+            <span>
+              TUBIG
+              <br />
+              NAMIN ITO!
+            </span>
           </div>
-          <div className="hero-placard placard-two">
-            KONSULTA
-            <br />
-            MUNA!
+          <div className="hero-placard placard-two hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "560ms" } as React.CSSProperties}>
+            <span>
+              KONSULTA
+              <br />
+              MUNA!
+            </span>
+          </div>
+          <div className="hero-placard placard-three hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "600ms" } as React.CSSProperties}>
+            <span>Lupa sa Magsasaka!</span>
+          </div>
+          <div className="hero-placard placard-four hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "640ms" } as React.CSSProperties}>
+            <span>
+              Lupang Ninuno,
+              <br />
+              Dipensahan
+            </span>
+          </div>
+          <div className="hero-placard placard-five hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "680ms" } as React.CSSProperties}>
+            <span>Tuloy ang laban!</span>
           </div>
           <div className="hero-copy">
-            <div className="stamps">
+            <div className="stamps hero-reveal hero-reveal-up" style={{ "--reveal-delay": "80ms" } as React.CSSProperties}>
               <span>PUBLIC REVIEW COPY</span>
               <span>NOT APPROVED</span>
             </div>
-            <p className="eyebrow">A PEOPLE'S COUNTER-PLAN · PHILIPPINES · REV 01</p>
-            <h1>
-              Protect Our Homes,
-              <br />
-              <i>Water,</i> and Future.
-            </h1>
-            <p className="hero-kicker">No to Pax Silica and residential data centers.</p>
-            <p className="hero-description">
-              Tech giants shouldn't build industrial mega-facilities in our backyards. See the
-              hidden environmental, economic, and health costs of unregulated data center expansion.
+            <p className="eyebrow hero-reveal hero-reveal-up" style={{ "--reveal-delay": "140ms" } as React.CSSProperties}>
+              A DROP IN THE CLOUD · OPPOSING THE PAX SILICA PROJECT · PHILIPPINES · REV 01
             </p>
-            <div className="hero-actions">
+            <div className="hero-title-row">
+              <h1 className="hero-reveal hero-reveal-up" style={{ "--reveal-delay": "200ms" } as React.CSSProperties}>
+                A DROP IN
+                <br />
+                <i>THE CLOUD</i>
+              </h1>
+              <div className="title-block hero-reveal hero-reveal-up" style={{ "--reveal-delay": "260ms" } as React.CSSProperties}>
+                <b className="sheet-docket">
+                  A DROP IN THE CLOUD · SHEET A-001 · SCALE NTS · DRAWN BY: THE PEOPLE
+                </b>
+                <span>DRAWN BY</span>
+                <b>THE PEOPLE</b>
+                <span>STATUS</span>
+                <b>FOR PUBLIC ACTION</b>
+                <span>REV</span>
+                <b>ONGOING</b>
+              </div>
+            </div>
+            <p className="hero-kicker hero-reveal hero-reveal-up" style={{ "--reveal-delay": "320ms" } as React.CSSProperties}>
+              Protect our homes, water, and future. [INSERT SUBHEADLINE — 2 LINES]
+            </p>
+            <p className="hero-description hero-reveal hero-reveal-up" style={{ "--reveal-delay": "390ms" } as React.CSSProperties}>[INSERT BODY COPY — 2–3 LINES]</p>
+            <div className="hero-actions hero-reveal hero-reveal-up" style={{ "--reveal-delay": "460ms" } as React.CSSProperties}>
               <button className="orange-button" onClick={() => scrollTo("petition")}>
-                Sign the Petition ↗
+                Sign the Petition →
               </button>
               <button className="line-button" onClick={() => scrollTo("data")}>
                 See the Impact Data ↓
               </button>
             </div>
-            <div className="dimension">
+            <div className="dimension hero-reveal hero-reveal-up" style={{ "--reveal-delay": "520ms" } as React.CSSProperties}>
               <span>0</span>
               <b />
               <span>120 m</span>
@@ -777,22 +1588,17 @@ export default function App() {
             </div>
           </div>
           <div className="hero-drawing">
-            <DataCenterDrawing />
-            <div className="hazard-note">
+            <div className="hero-figure-slot" ref={heroFigureSlotRef}>
+              <HeroBlueprintFigure />
+            </div>
+            <div className="hazard-note hero-reveal hero-reveal-up" style={{ "--reveal-delay": "560ms" } as React.CSSProperties}>
               ⚠ INDUSTRIAL SCALE
               <br />
               <small>inside a residential fabric?</small>
             </div>
           </div>
-          <div className="title-block">
-            <span>DRAWN BY</span>
-            <b>THE PEOPLE</b>
-            <span>STATUS</span>
-            <b>FOR PUBLIC ACTION</b>
-            <span>REV</span>
-            <b>ONGOING</b>
-          </div>
-          <div className="crowd-line" aria-hidden="true">
+          <div className="hazard-divider hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "620ms" } as React.CSSProperties} aria-hidden="true" />
+          <div className="crowd-line hero-reveal hero-reveal-bottom" style={{ "--reveal-delay": "680ms" } as React.CSSProperties} aria-hidden="true">
             {Array.from({ length: 18 }).map((_, i) => (
               <i key={i}>
                 <b />
@@ -807,61 +1613,105 @@ export default function App() {
             no="01"
             eyebrow="THE ISSUE / SITE CONFLICT"
             title="What is Pax Silica — and why residential zones?"
-            description="Pax Silica is a proposed international technology partnership. But when large digital infrastructure lands in a barangay, abstract policy becomes concrete pressure on water, power, roads, and homes."
+            description="[INSERT BODY COPY — 2–3 LINES]"
           />
           <div id="overview" className="site-plan">
-            <svg
+            <svg preserveAspectRatio="xMidYMid meet"
               viewBox="0 0 800 500"
               role="img"
-              aria-label="Site plan showing a proposed data center overlapping a residential neighborhood"
+              aria-label="Architectural cross-section of a proposed data center between a barangay road and an electrical substation, above a shared aquifer"
             >
-              <g fill="none" stroke={C} strokeWidth="1.2">
-                <path
-                  d="M36 65h725v367H36zM36 177h725M36 324h725M175 65v367M613 65v367"
-                  strokeDasharray="8 5"
-                />
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <path
-                    key={i}
-                    d={`M${70 + i * 68} 205l27-22 30 24v68H70zM70 205h57`}
-                    opacity={hotspot === 2 ? 1 : 0.45}
-                  />
+              <path d="M28 279h744v188H28z" fill="#031F5A" />
+              <g fill="none" stroke={C} strokeWidth="1.2" strokeLinejoin="miter" strokeLinecap="square">
+                {/* Ground datum: one clean cut between the built fabric and the aquifer. */}
+                <path d="M28 278h744" strokeWidth="2.4" />
+                <path d="M28 278v-14m744 14v-14" opacity="0.7" />
+                <path d="M28 332h744M28 386h744M28 440h744" opacity="0.16" />
+
+                {/* Barangay road and homes, kept left of the proposed footprint. */}
+                <path d="M34 246h178v32H34z" fill="#031F5A" strokeWidth="1.5" />
+                <path d="M34 262h178" strokeDasharray="16 12" opacity="0.7" />
+                {[
+                  [54, 176, 0.86],
+                  [116, 182, 0.78],
+                  [176, 174, 0.84],
+                ].map(([x, y, s], i) => (
+                  <g key={`section-home-${i}`} transform={`translate(${x} ${y}) scale(${s})`}>
+                    <path d="M0 26h58v48H0z" fill="#031F5A" strokeWidth="1.5" />
+                    <path d="M-6 27 29 3l35 24-7 6-28-19-28 19Z" fill="#031F5A" strokeWidth="1.5" />
+                    <path d="M10 38h14v15H10zM36 38h13v15H36z" fill="#031F5A" strokeWidth="1.1" />
+                    <path d="M25 74V55h12v19" fill="#031F5A" strokeWidth="1.1" />
+                  </g>
                 ))}
-                <path
-                  d="M220 92h340v245H220zM238 110h304v164H238zM255 290h95v28m28-28h70v28m28-28h51v28"
-                  className={hotspot === 0 ? "hot-line" : ""}
-                />
-                <circle cx="395" cy="214" r="87" className={hotspot === 1 ? "hot-line" : ""} />
-                <path d="M395 127v174M308 214h174M637 70l89 47m-89 0 89-47" />
-                <path
-                  d="M104 350c48 35 105 33 148 0 43-32 92-34 137 0 53 40 113 38 164 0 43-34 93-35 151 0"
-                  stroke="#7DB35F"
-                  strokeWidth="4"
-                  className={hotspot === 2 ? "hot-line green" : ""}
-                />
-                <path d="M220 350h340M220 342v16m340-16v16" />
+
+                {/* Proposed data hall: one figure so every line switches highlight together. */}
+                <g className={hotspot === 0 ? "hotspot-figure hot-line" : "hotspot-figure"}>
+                  <path d="M276 142h276v136H276z" fill="#031F5A" strokeWidth="2.6" />
+                  <path d="M276 142l18-16h276l-18 16M552 142l18-16v136l-18 16" fill="#031F5A" strokeWidth="1.6" />
+                  <path d="M276 88v12M552 88v12M276 94h276" opacity="0.8" />
+                  <path d="m276 94 10-5m-10 5 10 5m266-5-10-5m10 5-10 5" opacity="0.8" />
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <g key={`section-vent-${i}`} transform={`translate(${298 + i * 49} 198)`}>
+                      <path d="M0 0h32v38H0z" fill="#031F5A" strokeWidth="1.2" />
+                      <path d="M4 8h24m-24 8h24m-24 8h24m-24 8h24" opacity="0.55" />
+                    </g>
+                  ))}
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <path
+                      key={`section-roof-unit-${i}`}
+                      d={`M${300 + i * 78} 128h52v14h-52z`}
+                      fill="#031F5A"
+                      strokeWidth="1.2"
+                    />
+                  ))}
+                </g>
+
+                {/* Electrical substation: fenced yard, two transformers and a pylon. */}
+                <g className={hotspot === 1 ? "hotspot-figure hot-line" : "hotspot-figure"}>
+                  <path d="M600 168h166v110H600z" fill="#031F5A" strokeWidth="2.2" />
+                  <path d="M620 190h52v62h-52zM698 190h48v62h-48z" fill="#031F5A" strokeWidth="1.5" />
+                  <path d="M646 190v62m-26-31h52M722 190v62m-24-31h48" opacity="0.55" />
+                  <path d="M684 168V96m-24 0h48m-42 16h36m-30 16h24" strokeWidth="2.2" />
+                  <path d="M676 112h16M742 190v54m-12 0h24" strokeWidth="1.6" />
+                </g>
+
+                {/* Shared aquifer: both pipes and arrows recolor as one water figure. */}
+                <g className={hotspot === 2 ? "hotspot-figure hot-line" : "hotspot-figure"}>
+                  <path
+                    d="M40 356c92-20 184 20 276 0s184 20 276 0 132 18 168 0"
+                    opacity="0.45"
+                    strokeWidth="2"
+                  />
+                  <path
+                    d="M40 402c92-20 184 20 276 0s184 20 276 0 132 18 168 0"
+                    opacity="0.24"
+                    strokeWidth="1.6"
+                  />
+                  <path d="M414 278v68H122" stroke="#031F5A" strokeWidth="15" />
+                  <path d="M414 278v68H122" strokeWidth="2.4" />
+                  <path d="M474 278v92" stroke="#031F5A" strokeWidth="13" />
+                  <path d="M474 278v92" strokeWidth="2.2" />
+                  <path
+                    d="m148 346-12-7m12 7-12 7m326-7 12-7m-12 7 12 7"
+                    stroke="#FF7A1A"
+                    strokeWidth="2.4"
+                  />
+                </g>
               </g>
-              <g fill={W} fontFamily="IBM Plex Mono" fontSize="13">
-                <text x="52" y="89">
-                  BARANGAY ROAD
-                </text>
-                <text x="325" y="207">
-                  PROPOSED FOOTPRINT
-                </text>
-                <text x="321" y="228">
-                  6.8 ha [VERIFY]
-                </text>
-                <text x="308" y="374">
-                  AQUIFER / SHARED WATER
-                </text>
-                <text x="650" y="140">
-                  SUBSTATION
-                </text>
+
+              <g fill={W} fontFamily="IBM Plex Mono" fontSize="12" letterSpacing="1">
+                <text x="40" y="238">BARANGAY ROAD</text>
+                <text x="276" y="76">PROPOSED DATA CENTER FOOTPRINT</text>
+                <text x="276" y="116" fill={C} fontSize="11">[0.0 ha]</text>
+                <text x="600" y="156">ELECTRICAL SUBSTATION</text>
+                <text x="40" y="438">AQUIFER / SHARED WATER</text>
+                <text x="430" y="322" fill="#FF7A1A" fontSize="10">DRAW [00.0 L/DAY]</text>
               </g>
+
               {[
-                ["1", 552, 106],
-                ["2", 482, 214],
-                ["3", 164, 350],
+                ["1", 414, 132],
+                ["2", 684, 132],
+                ["3", 148, 372],
               ].map(([n, x, y], i) => (
                 <g
                   key={n}
@@ -872,40 +1722,46 @@ export default function App() {
                   aria-label={`Highlight site issue ${n}`}
                 >
                   <circle
+                    className={i === hotspot ? "site-marker active" : "site-marker"}
                     cx={Number(x)}
                     cy={Number(y)}
-                    r="20"
+                    r="18"
                     fill="#031F5A"
                     stroke={i === hotspot ? "#FF7A1A" : C}
-                    strokeWidth="3"
+                    strokeWidth="1.6"
                   />
-                  <text x={Number(x)} y={Number(y) + 6} textAnchor="middle" fill={W} fontSize="18">
+                  <text x={Number(x)} y={Number(y) + 6} textAnchor="middle" fill={W} fontSize="17">
                     {n}
                   </text>
                 </g>
               ))}
             </svg>
             <ol className="plan-legend">
-              <li className={hotspot === 0 ? "active" : ""} onMouseEnter={() => setHotspot(0)}>
-                <b>① Industrial footprint</b>
-                <span>
-                  A campus can cover several city blocks—before substations and utility corridors.
-                </span>
-              </li>
-              <li className={hotspot === 1 ? "active" : ""} onMouseEnter={() => setHotspot(1)}>
-                <b>② 24/7 pressure</b>
-                <span>
-                  Cooling, power conversion and backup systems do not sleep when the neighborhood
-                  does.
-                </span>
-              </li>
-              <li className={hotspot === 2 ? "active" : ""} onMouseEnter={() => setHotspot(2)}>
-                <b>③ Shared resources</b>
-                <span>
-                  Tubig at kuryente are public necessities. Industrial demand must not jump the
-                  queue.
-                </span>
-              </li>
+              {[
+                { n: 0, label: 'Industrial footprint', marker: '①' },
+                { n: 1, label: '24/7 pressure', marker: '②' },
+                { n: 2, label: 'Shared resources', marker: '③' },
+              ].map((item) => (
+                <li
+                  key={item.n}
+                  className={hotspot === item.n ? 'active' : ''}
+                  onMouseEnter={() => setHotspot(item.n)}
+                  onFocus={() => setHotspot(item.n)}
+                  onClick={() => setHotspot(item.n)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setHotspot(item.n);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={hotspot === item.n}
+                >
+                  <b>{item.marker} {item.label}</b>
+                  <span>[INSERT EXPLANATION — 2 LINES]</span>
+                </li>
+              ))}
             </ol>
             <div className="north-arrow">
               N<br />↑
@@ -919,119 +1775,111 @@ export default function App() {
             no="01.B"
             eyebrow="CLAIM / FIELD CONDITION"
             title="The reality check"
-            description="Turn the sheet. Compare the sales pitch with what communities may carry."
+            description="[INSERT BODY COPY — 1 LINE]"
           />
-          <div className={`flipbook ${flipping ? "flipping" : ""}`}>
-            <article className="clean-page">
-              <small>PAX SILICA · PROJECT BRIEF</small>
-              <span className="pair-count">0{reality + 1}/06</span>
-              <p>WHAT THEY SAY</p>
-              <h3>“{realityPairs[reality][0]}”</h3>
-              <div className="corporate-bars">
-                <i />
-                <i />
-                <i />
-              </div>
-              <button onClick={nextReality}>TURN PAGE ↗</button>
-            </article>
-            <article className="marked-page">
-              <span className="orange-stamp">FIELD CHECK</span>
-              <p>WHAT'S ON THE GROUND</p>
-              <h3>{realityPairs[reality][1]}</h3>
-              <svg viewBox="0 0 300 70">
-                <path
-                  d="M4 43c27-31 49 19 76-4s52 17 75-8 51 17 70-7 43 7 70-12"
-                  fill="none"
-                  stroke="#FF7A1A"
-                  strokeWidth="3"
-                />
-              </svg>
-              <small>Source required before publication · [VERIFY]</small>
-            </article>
-            <button
-              className="page-corner"
-              onClick={nextReality}
-              aria-label="Turn to next reality check"
-            >
-              ↗
+          <div className="flashcard-stack" aria-label="Claim and field-condition flashcards">
+            {realityPairs.map((_, i) => (
+              <RealityFlashcard
+                key={i}
+                index={i}
+                depth={(i - reality + totalRealityCards) % totalRealityCards}
+                onZoom={() => setZoomedReality(i)}
+              />
+            ))}
+          </div>
+          <div className="flashcard-controls" aria-label="Flashcard controls">
+            <button className="flashcard-nav" onClick={previousReality} aria-label="Previous card">
+              ← PREV
+            </button>
+            <span className="flashcard-counter" aria-live="polite">
+              CARD {String(reality + 1).padStart(2, "0")} / {String(totalRealityCards).padStart(2, "0")}
+            </span>
+            <button className="flashcard-nav" onClick={nextReality} aria-label="Next card">
+              NEXT →
             </button>
           </div>
-          <div className="flip-dots">
+          <div className="flashcard-dots" aria-label="Choose a flashcard">
             {realityPairs.map((_, i) => (
               <button
                 key={i}
-                className={i === reality ? "active" : ""}
+                className={reality === i ? "active" : ""}
                 onClick={() => setReality(i)}
-                aria-label={`Show comparison ${i + 1}`}
+                aria-label={`Go to card ${i + 1}`}
+                aria-current={reality === i ? "true" : undefined}
               >
                 {i + 1}
               </button>
             ))}
           </div>
+          <p className="flashcard-note">PREV / NEXT LIFTS THE NEXT CARD TO THE TOP.</p>
         </section>
 
         <section id="scenarios" className="blueprint-section scenarios-section">
           <DraftMarks sheet="A-301" />
           <SectionTitle
             no="01.C"
-            eyebrow="PROJECTED CONDITIONS / [VERIFY]"
+            eyebrow="PROJECTED CONDITIONS / [SOURCE]"
             title="Drag the future into view"
           />
           <div className="scenario-grid">
             <div className={`neighborhood stage-${scenario}`}>
-              <DataCenterDrawing compact />
+              <NeighborhoodScene stage={scenario} />
               <div className="heat-lines">)))</div>
               <span className="stage-label">
                 {["CONSTRUCTION ZONE", "UTILITY STRESS", "ECOLOGICAL DAMAGE"][scenario]}
               </span>
             </div>
             <div className="scenario-controls">
-              <input
-                aria-label="Future scenario from short to long term"
-                type="range"
-                min="0"
-                max="2"
-                step="1"
-                value={scenario}
-                onChange={(e) => setScenario(Number(e.target.value))}
-              />
-              <div className="ruler-labels">
-                <button onClick={() => setScenario(0)}>
-                  <b>SHORT TERM</b>
-                  <span>0–2 YRS</span>
-                </button>
-                <button onClick={() => setScenario(1)}>
-                  <b>MEDIUM TERM</b>
-                  <span>3–7 YRS</span>
-                </button>
-                <button onClick={() => setScenario(2)}>
-                  <b>LONG TERM</b>
-                  <span>8+ YRS</span>
-                </button>
+              <div className="scenario-meter">
+                <input
+                  aria-label="Future scenario from short to long term"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="50"
+                  value={scenario * 50}
+                  style={{ "--meter-progress": `${scenario * 50}%` } as React.CSSProperties}
+                  onChange={(e) => setScenario(Math.round(Number(e.target.value) / 50))}
+                />
+                <div className="snap-stops">
+                  {[
+                    ["SHORT TERM", "(0-2 YRS) · 0%"],
+                    ["MEDIUM TERM", "(3-7 YRS) · 50%"],
+                    ["LONG TERM", "(8+ YRS) · 100%"],
+                  ].map(([label, detail], i) => (
+                    <button
+                      key={label}
+                      type="button"
+                      data-stop={i}
+                      className={scenario === i ? "active" : ""}
+                      onClick={() => setScenario(i)}
+                      aria-pressed={scenario === i}
+                      aria-label={`Snap to ${label} ${detail.replace(" · ", ", ")}`}
+                    >
+                      <i aria-hidden="true" />
+                      <b>{label}</b>
+                      <span>{detail}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
               <p>
-                {
-                  [
-                    "Construction noise, traffic and land displacement.",
-                    "Brownouts, water rationing and rising utility rates.",
-                    "Aquifer depletion, urban heat and ecological damage.",
-                  ][scenario]
-                }
+                {`[INSERT CONDITION NOTE — 2 LINES / STAGE 0${scenario + 1}]`}
               </p>
               <div className="live-meters">
                 {meters.map((m) => (
                   <div key={m.name}>
                     <span>{m.name}</span>
                     <b>
-                      {m.unit === "₱" && m.unit}
-                      {m.value}
-                      {m.unit !== "₱" && m.unit}
+                      {m.unit === "₱"
+                        ? `[PHP ${m.value.toLocaleString()}]`
+                        : `[${m.value} ${m.unit}]`}
                     </b>
                     <i style={{ width: `${m.unit === "₱" ? m.value / 80 : m.value}%` }} />
                   </div>
                 ))}
               </div>
-              <small>MODEL OUTPUTS ARE EDITABLE PLACEHOLDERS · [VERIFY]</small>
+              <small>[INSERT METHODOLOGY NOTE — 1 LINE]</small>
             </div>
           </div>
         </section>
@@ -1042,25 +1890,79 @@ export default function App() {
             no="02"
             eyebrow="DATA & GLOBAL IMPACT"
             title="This is not a hypothetical elsewhere."
-            description="Communities around the world are already redrawing limits around land, water, and electricity."
+            description="[INSERT BODY COPY — 2 LINES]"
           />
           <div id="case-studies" className="world-study">
             <div className="world-map">
-              <svg
+              <svg preserveAspectRatio="xMidYMid meet"
                 viewBox="0 0 900 460"
                 role="img"
-                aria-label="World map with data center case study pins"
+                aria-label="Blueprint world map with data center case study pins"
               >
-                <g fill="none" stroke={C} strokeWidth="1.5">
-                  <path d="M74 111 137 66l101 12 54 54-30 43-78 8-18 48-54-11-24-47-39-21Zm166 145 51 35 22 100-41 41-33-88-30-55Zm183-142 63-58 120 14 33 38 75 10 103 70-22 51-107-4-65 63-76-3-35-56-74-26-47-60Zm83 188 93 4 48 55-42 68-99-35-32-55Z" />
-                  <path d="M47 230h790M450 44v390" strokeDasharray="3 8" opacity=".35" />
+                <g className="map-graticule" fill="none" stroke={C} strokeWidth="0.8">
+                  {[70, 130, 190, 250, 310, 370].map((y) => (
+                    <path key={`lat-${y}`} d={`M24 ${y}h852`} opacity="0.22" />
+                  ))}
+                  {[90, 180, 270, 360, 450, 540, 630, 720, 810].map((x) => (
+                    <path key={`lon-${x}`} d={`M${x} 28v404`} opacity="0.22" />
+                  ))}
+                  <path d="M24 230h852M450 28v404" strokeDasharray="4 8" opacity="0.48" />
+                  <path d="M24 28h852v404H24z" opacity="0.55" />
+                </g>
+                <g className="map-landmass" fill="#3FC8FF14" stroke={C} strokeWidth="1.6">
+                  <path d="M96 96 128 72l56-10 38 14 40-12 44 18 20 28-16 22-26 10-8 26-26 18-8 28-24 14-20-16-14-28-26-10-16-26-30-10-20-22Z" />
+                  <path d="m218 228 28 14 22 24-12 16-24-12-20-22Z" />
+                  <path d="m330 48 44-10 36 16-12 28-42 10-28-18Z" />
+                  <path d="m266 278 34-12 30 16 18 30-8 36-14 34-20 32-22-10-10-36-16-34-6-32Z" />
+                  <path d="m430 112 24-16 28 4 18 16-12 16 22 10-14 18-26-2-18 16-20-12-10-22Z" />
+                  <path d="m458 82 20-18 26 8 8 24-18 12-22-8Z" />
+                  <path d="m438 180 40-10 34 14 22 28-8 38-16 36-22 40-26 14-18-30-12-38-14-40Z" />
+                  <path d="m510 104 38-22 42-8 46 10 46-14 46 18 46 18 34 28-12 32-36 14-22 28-38 8-28 28-40-8-26-22-36-6-26-24-24-26-14-26Z" />
+                  <path d="m700 250 24 8 14 20-18 8-16-16Zm52 28 20 8-6 16-18-6Z" />
+                  <path d="m742 336 40-14 40 14 20 30-16 30-40 8-30-16-18-26Z" />
+                  <path d="m850 402 14 12-8 18-12-12Z" />
+                  <path d="m798 158 14-10 6 18-10 14Zm-378-40 12-10 6 16-10 12Z" />
+                </g>
+                <path
+                  className="case-leader"
+                  d={`M${selectedPinX.toFixed(1)} ${selectedPinY.toFixed(1)} L 900 ${Math.max(
+                    40,
+                    Math.min(410, selectedPinY - 70),
+                  ).toFixed(1)}`}
+                  fill="none"
+                  stroke="#FF7A1A"
+                  strokeWidth="1.6"
+                  strokeDasharray="8 6"
+                />
+                <circle cx={selectedPinX} cy={selectedPinY} r="8" fill="none" stroke="#FF7A1A" strokeWidth="1.5" />
+                <text
+                  x="802"
+                  y={Math.max(46, Math.min(404, selectedPinY - 78))}
+                  fill="#FF7A1A"
+                  fontFamily="IBM Plex Mono"
+                  fontSize="10"
+                >
+                  CASE FILE {String(cases.indexOf(selectedCase) + 1).padStart(2, "0")}
+                </text>
+                <g fill={W} fontFamily="IBM Plex Mono" fontSize="9" opacity="0.7">
+                  <text x="30" y="24">60°N</text>
+                  <text x="30" y="236">00°</text>
+                  <text x="30" y="430">60°S</text>
+                  <text x="812" y="430">NTS · REV 01</text>
                 </g>
               </svg>
               {cases.map((c) => (
                 <button
                   key={c.name}
                   className={`map-pin ${selectedCase.name === c.name ? "active" : ""}`}
-                  style={{ left: `${c.x}%`, top: `${c.y}%` }}
+                  style={
+                    {
+                      left: `${c.x}%`,
+                      top: `${c.y}%`,
+                      "--label-x": `${c.labelOffset?.[0] ?? 0}px`,
+                      "--label-y": `${c.labelOffset?.[1] ?? 0}px`,
+                    } as React.CSSProperties
+                  }
                   onClick={() => setSelectedCase(c)}
                   aria-label={`View ${c.name} case study`}
                 >
@@ -1085,44 +1987,62 @@ export default function App() {
             </article>
           </div>
           <div className="impact-gauges">
-            {[
-              ["WATER", "4.2 MLD", "≈ 2,800 homes"],
-              ["POWER", "100 MW", "≈ 18,500 homes"],
-              ["LAND", "6.8 HA", "≈ 9 city blocks"],
-              ["LIVELIHOOD", "47", "jobs after build"],
-            ].map((g, i) => (
-              <div className="gauge" key={g[0]}>
-                <svg viewBox="0 0 160 95">
-                  <path
-                    d="M18 78a62 62 0 0 1 124 0"
-                    fill="none"
-                    stroke={C}
-                    strokeWidth="3"
-                    strokeDasharray="7 4"
-                  />
-                  <path
-                    d={`M80 78  ${30 + i * 25} ${28 + i * 5}`}
-                    stroke="#FF7A1A"
-                    strokeWidth="3"
-                  />
-                  <circle cx="80" cy="78" r="5" fill={W} />
-                </svg>
-                <span>{g[0]}</span>
-                <b>
-                  {g[1]} <small>[VERIFY]</small>
-                </b>
-                <p>{g[2]}</p>
-              </div>
-            ))}
+            {impactMeters.map((meter) => {
+              const fraction = Math.max(0, Math.min(1, meter.value / meter.max));
+              const needleAngle = -90 + fraction * 180;
+              return (
+                <div className="gauge" key={meter.name}>
+                  <svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 180 110" aria-hidden="true">
+                    <path
+                      d="M22 88a68 68 0 0 1 136 0"
+                      fill="none"
+                      stroke={C}
+                      strokeWidth="3"
+                      strokeDasharray="8 5"
+                    />
+                    <g stroke={W} strokeWidth="1" opacity="0.6">
+                      {Array.from({ length: 9 }).map((_, t) => {
+                        const angle = Math.PI - (t * Math.PI) / 8;
+                        const x1 = 90 + Math.cos(angle) * 56;
+                        const y1 = 88 - Math.sin(angle) * 56;
+                        const x2 = 90 + Math.cos(angle) * 64;
+                        const y2 = 88 - Math.sin(angle) * 64;
+                        return (
+                          <path
+                            key={`tick-${t}`}
+                            d={`M${x1.toFixed(1)} ${y1.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`}
+                          />
+                        );
+                      })}
+                    </g>
+                    <g
+                      className="gauge-needle"
+                      style={{ transform: `rotate(${needleAngle.toFixed(2)}deg)` }}
+                    >
+                      <path
+                        d="M90 88 154 88"
+                        stroke="#FF7A1A"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                      />
+                    </g>
+                    <circle cx="90" cy="88" r="6" fill={W} />
+                    <path d="M22 88h136" stroke={C} strokeWidth="1" opacity="0.5" />
+                  </svg>
+                  <span>{meter.name}</span>
+                  <b>
+                    {meter.displayValue} <small>{meter.source}</small>
+                  </b>
+                  <p>{meter.comparison}</p>
+                </div>
+              );
+            })}
           </div>
           <div id="simulator" className="simulator">
             <div>
               <p className="eyebrow">IMPACT SIMULATOR / WORKING ASSUMPTIONS</p>
               <h3>Draw your own demand scenario.</h3>
-              <p>
-                Move the sliders to test scale. These are not forecasts; they show why transparent
-                local data matters.
-              </p>
+              <p>[INSERT BODY COPY — 2 LINES]</p>
             </div>
             <div className="sim-controls">
               <label>
@@ -1149,27 +2069,32 @@ export default function App() {
             </div>
             <div className="sim-output">
               <span>DAILY WATER ≈</span>
-              <strong>{waterHomes.toLocaleString()}</strong>
+              <strong>[{waterHomes.toLocaleString()}]</strong>
               <b>HOUSEHOLDS</b>
               <i />
               <span>DAILY ELECTRICITY ≈</span>
-              <strong>{powerHomes.toLocaleString()}</strong>
+              <strong>[{powerHomes.toLocaleString()}]</strong>
               <b>HOMES</b>
             </div>
-            <small className="formula">
-              FORMULA: centers × placeholder baseline × population factor. Baselines: 2,800
-              water-equivalent households and 18,500 power-equivalent homes per center. ALL VALUES
-              EDITABLE / [VERIFY].
-            </small>
+            <small className="formula">[INSERT METHODOLOGY NOTE — 2 LINES]</small>
           </div>
-        </section>
-
-        <div className="table-transition" aria-hidden="true">
-          <span>THE PLAN WAS ON OUR TABLE ALL ALONG</span>
-          <i />
-          <b />
+          </section>
         </div>
 
+        <div className="world-two drafting-table">
+        <div className="table-transition" aria-hidden="true">
+          <div className="table-reveal-stage">
+            <div className="table-blueprint-sheet blueprint-surface">
+              <span className="sheet-rolled-edge" />
+            </div>
+            <p className="table-settle-caption">
+              THE PLAN WAS <em>ON OUR TABLE</em> ALL ALONG
+            </p>
+          </div>
+        </div>
+
+        <div className="table-strip">
+          <span className="table-strip-roll" aria-hidden="true" />
         <section id="research" className="blueprint-section table-world research-section">
           <TableProps variant={0} />
           <DraftMarks sheet="R-001" />
@@ -1184,33 +2109,45 @@ export default function App() {
               </button>
             ))}
           </div>
-          <div className="research-pile">
-            <blockquote className="quote-blueprint">
+          <div className="research-stage">
+          <div className="takeover-panel">
+            <div className="quote-blueprint">
               <small>PEOPLE'S ANNOTATION / REV 04</small>
-              <span>“A plan drawn</span> <u>without the people</u> <span>is not a plan.</span>{" "}
+              <span>A plan drawn</span> <u>without the people</u> <span>is not a plan.</span>{" "}
               <i>
-                It’s a <b>takeover.</b>”
+                <strong>IT'S A TAKEOVER.</strong>
               </i>
-              <em>REJECTED</em>
-            </blockquote>
+            </div>
+            <em>REJECTED</em>
+          </div>
+          <div className="research-pile">
             {research.map((r, i) => {
               const moved = paperPositions[i] || { x: 0, y: 0 };
               const hidden = filter !== "All" && r.category !== filter;
+              const layout = researchPaperLayouts[i] ?? { x: 24, y: 12, partX: 0, partY: 0 };
+              const mobileX = 24 + r.x * 0.42;
+              const mobileY = 12 + r.y * 0.52;
               return (
                 <button
                   className={`research-paper paper-${r.kind} ${hidden ? "filtered-out" : ""}`}
                   style={
                     {
-                      "--x": `${r.x}%`,
-                      "--y": `${r.y}%`,
+                      "--x": `${layout.x}%`,
+                      "--y": `${layout.y}px`,
                       "--w": `${r.w}%`,
+                      "--mx": `${mobileX}%`,
+                      "--my": `${mobileY}%`,
                       "--r": `${r.r}deg`,
                       "--z": r.z,
                       "--dx": `${moved.x}px`,
                       "--dy": `${moved.y}px`,
+                      "--part-x": `${layout.partX}px`,
+                      "--part-y": `${layout.partY}px`,
                     } as React.CSSProperties
                   }
-                  key={r.title}
+                  key={`${r.category}-${i}`}
+                  tabIndex={hidden ? -1 : 0}
+                  aria-hidden={hidden || undefined}
                   onPointerDown={(e) => {
                     const pos = paperPositions[i] || { x: 0, y: 0 };
                     dragRef.current = {
@@ -1241,7 +2178,7 @@ export default function App() {
                   {r.kind === "map" && (
                     <span className="mini-map">
                       ▱ ┈┈ ◯ ┈┈ ▰<br />
-                      ROAD 14 / LOT 22
+                      [LOT REF]
                     </span>
                   )}
                   {r.kind === "email" && (
@@ -1252,10 +2189,11 @@ export default function App() {
                   </span>
                   <h3>{r.title}</h3>
                   <p>{r.note}</p>
-                  <small>{r.source} · [VERIFY] · DRAG / OPEN ↗</small>
+                  <small>{r.source} · {r.date} · DRAG / OPEN ↗</small>
                 </button>
               );
             })}
+          </div>
           </div>
         </section>
 
@@ -1266,7 +2204,7 @@ export default function App() {
             no="04"
             eyebrow="VOICES OF THE PEOPLE"
             title="The community wall"
-            description={`${stories} testimonies pinned and counting. Tao muna bago tubo.`}
+            description={`[${stories} NOTES PINNED] · [INSERT SUBHEADLINE — 1 LINE]`}
           />
           <div className="community-wall">
             <div className="photo-note note-one">
@@ -1274,15 +2212,13 @@ export default function App() {
                 src="/community/market.jpg"
                 alt="People gathering in a busy neighborhood market"
               />
-              <p>“Hindi kami tutol sa teknolohiya. Tutol kami sa desisyong walang tao.”</p>
-              <small>— Resident, Bulacan · Photo: Hitoshi Namura / Unsplash</small>
+              <p>[INSERT TESTIMONY — 3 LINES]</p>
+              <small>[SOURCE · YEAR]</small>
             </div>
             <div className="photo-note note-two">
               <img src="/community/children.jpg" alt="Children laughing together" />
-              <p>
-                Our street is not spare industrial land. It is where our children walk to school.
-              </p>
-              <small>— Barangay parent · Photo: Avel Chuklanov / Unsplash</small>
+              <p>[INSERT TESTIMONY — 3 LINES]</p>
+              <small>[SOURCE · YEAR]</small>
             </div>
             <button
               className={`open-letter ${letterOpen ? "open" : ""}`}
@@ -1292,36 +2228,48 @@ export default function App() {
               <b>To our city council:</b>
               <p>
                 {letterOpen
-                  ? "Publish the water study, power agreement, zoning record, and ECC. Hold the hearing at a time working families can attend. We deserve answers before permits—not after construction."
+                  ? "[INSERT OPEN LETTER BODY — 3 LINES]"
                   : "CLICK TO UNFOLD"}
               </p>
             </button>
             <div className="speech-callout">“Consultation is not a checkbox.”</div>
           </div>
           <form className="story-form" onSubmit={submitStory}>
+            <div className="story-clip" aria-hidden="true">
+              <svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 32 32" focusable="false">
+                <path
+                  d="M20.5 7.5 10 18a4.5 4.5 0 0 0 6.4 6.4l11-11a7 7 0 0 0-9.9-9.9L6 15.1a9.5 9.5 0 0 0 13.4 13.4l7-7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span>PHOTO / CLIPPING</span>
+            </div>
             <p className="eyebrow">ADD YOUR NOTE TO THE WALL</p>
             <h3>Submit your story</h3>
             <div className="field-pair">
-              <label>
+              <label htmlFor="story-name">
                 Name
-                <input name="name" required />
+                <input id="story-name" name="name" autoComplete="name" required />
               </label>
-              <label>
+              <label htmlFor="story-place">
                 Barangay / City
-                <input name="place" required />
+                <input id="story-place" name="place" autoComplete="address-level2" required />
               </label>
             </div>
-            <label>
+            <label htmlFor="story-text">
               Your story
-              <textarea name="story" rows={4} required />
+              <textarea id="story-text" name="story" rows={4} required />
             </label>
-            <label className="file-field">
+            <label className="file-field" htmlFor="story-photo">
               Optional photo
-              <input type="file" accept="image/*" />
+              <input id="story-photo" name="photo" type="file" accept="image/*" />
             </label>
-            <label className="check-field">
-              <input type="checkbox" required /> I consent to community review and publication of
-              this story.
+            <label className="check-field" htmlFor="story-consent">
+              <input id="story-consent" name="consent" type="checkbox" required /> I consent to
+              community review and publication of this story.
             </label>
             <button className="line-button" type="submit">
               PIN MY STORY ↗
@@ -1337,23 +2285,23 @@ export default function App() {
             no="05"
             eyebrow="POLICY & ZONING EXPLAINER"
             title="Why residential areas are off-limits"
-            description="Three reviews, three duties, one public chain of accountability."
+            description="[INSERT BODY COPY — 1 LINE]"
           />
           <div className="policy-stack">
             {[
               [
                 "ZONING",
-                "Does the local land-use plan allow an industrial-scale facility beside homes?",
+                "[INSERT POLICY NOTE — 2 LINES]",
                 "LGU zoning review → public notice → hearing → decision",
               ],
               [
                 "ECC / ENVIRONMENT",
-                "An ECC should test impacts and impose conditions. It is not blanket permission.",
+                "[INSERT POLICY NOTE — 2 LINES]",
                 "Project study → DENR review → consultation → monitor",
               ],
               [
                 "LGU ACCOUNTABILITY",
-                "Local officials must disclose conflicts, incentives, studies, and permit grounds.",
+                "[INSERT POLICY NOTE — 2 LINES]",
                 "Records request → council oversight → public answer",
               ],
             ].map((p, i) => (
@@ -1373,6 +2321,13 @@ export default function App() {
                     </span>
                   ))}
                 </div>
+                <svg preserveAspectRatio="xMidYMid meet" className="flow-mark" viewBox="0 0 240 90" aria-hidden="true" focusable="false">
+                  <path d="M8 68c38-4 58-36 92-36 30 0 36 26 64 26 24 0 38-18 68-20" />
+                  <path d="m225 34 7 4-8 5" />
+                  <circle cx="8" cy="68" r="4" />
+                  <circle cx="100" cy="32" r="4" />
+                  <circle cx="164" cy="58" r="4" />
+                </svg>
                 {i > 0 && <b className="bypass">BYPASS?</b>}
               </button>
             ))}
@@ -1405,67 +2360,94 @@ export default function App() {
           />
           <div className="myth-list">
             {myths.map((m, i) => (
-              <button
-                key={m[0]}
-                onClick={() => {
-                  playStamp();
-                  setFlippedMyths((v) => (v.includes(i) ? v.filter((x) => x !== i) : [...v, i]));
-                }}
-                className={flippedMyths.includes(i) ? "flipped" : ""}
-              >
-                <span className="myth-stamp">{flippedMyths.includes(i) ? "FACT" : "MYTH"}</span>
-                <b>{flippedMyths.includes(i) ? m[1] : m[0]}</b>
-                <small>
-                  {flippedMyths.includes(i) ? "CHECK SOURCE REGISTER ↗" : "PRESS TO VERIFY"}
-                </small>
-              </button>
+              <MythFlipCard
+                key={i}
+                item={m}
+                index={i}
+                flipped={flippedMyth === i}
+                onFlip={() => flipMyth(i)}
+                onExpand={() => expandMyth(i)}
+              />
             ))}
           </div>
         </section>
+        </div>
 
         <div className="blueprint-rollout" aria-hidden="true">
+          <i className="rollout-torn-edge" />
+          <i className="rollout-hazard" />
           <b>ROLL OUT THE PEOPLE'S PLAN</b>
-          <span />
+          <span className="rollout-roller" />
+        </div>
         </div>
 
         <section id="action" className="blueprint-section action-section">
           <DraftMarks sheet="ACT-01" />
           <ProtestMarks compact />
+          <FinaleStencils />
           <SectionTitle
             no="07"
             eyebrow="ISSUED FOR ACTION"
             title="Don't let this plan pass quietly."
-            description="Add your name. Write your representative. Bring the drawing set to your barangay."
+            description="[INSERT BODY COPY — 2 LINES]"
           />
           <div id="petition" className="petition-block">
             <div className="approval-stamp">
               <span>PEOPLE'S APPROVAL</span>
-              <strong>{signatures.toLocaleString()}</strong>
+              <strong>[{signatures.toLocaleString()}]</strong>
               <b>SIGNATURES</b>
             </div>
             <div className="petition-copy">
               <p className="eyebrow">PETITION No. 001</p>
-              <h3>Demand a pause, full disclosure, and public consultation.</h3>
+              <h3 id="petition-heading">Demand a pause, full disclosure, and public consultation.</h3>
               <div className="progress-ruler">
                 <i style={{ width: `${Math.min(100, signatures / 250)}%` }} />
                 <span>0</span>
-                <span>GOAL 25,000</span>
+                <span>GOAL [00,000]</span>
               </div>
             </div>
-            <form onSubmit={submitPetition}>
-              <label>
-                Full name
-                <input required />
+            <form onSubmit={submitPetition} aria-labelledby="petition-heading">
+              <span className="reg-mark reg-tl" aria-hidden="true" />
+              <span className="reg-mark reg-tr" aria-hidden="true" />
+              <span className="reg-mark reg-bl" aria-hidden="true" />
+              <span className="reg-mark reg-br" aria-hidden="true" />
+              <label htmlFor="petition-name">
+                <span>FULL NAME</span>
+                <input
+                  id="petition-name"
+                  name="name"
+                  required
+                  autoComplete="name"
+                  enterKeyHint="next"
+                />
               </label>
-              <label>
-                Email
-                <input required type="email" />
+              <label htmlFor="petition-email">
+                <span>EMAIL</span>
+                <input
+                  id="petition-email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  enterKeyHint="next"
+                />
               </label>
-              <label>
-                City / Municipality
-                <input required />
+              <label htmlFor="petition-city">
+                <span>CITY / MUNICIPALITY</span>
+                <input
+                  id="petition-city"
+                  name="city"
+                  required
+                  autoComplete="address-level2"
+                  enterKeyHint="done"
+                />
               </label>
-              <button className="orange-button">SIGN THE PETITION ↗</button>
+              <div className="petition-submit-row">
+                <button type="submit" className="orange-button">
+                  SIGN THE PETITION ↗
+                </button>
+                <PetitionIcon />
+              </div>
               <output aria-live="polite">{petitionStatus}</output>
             </form>
           </div>
@@ -1473,12 +2455,17 @@ export default function App() {
             <div>
               <p className="eyebrow">DIRECT LETTER / CHOOSE RECIPIENT</p>
               <h3>Email your representative</h3>
-              <div className="recipient-tabs">
+              <div className="recipient-tabs" aria-label="Choose letter recipient">
                 {["Mayor", "Councilor", "DENR", "DOE"].map((r) => (
                   <button
                     key={r}
+                    type="button"
                     className={recipient === r ? "active" : ""}
-                    onClick={() => setRecipient(r)}
+                    aria-pressed={recipient === r}
+                    onClick={() => {
+                      setRecipient(r);
+                      setCopied(false);
+                    }}
                   >
                     {r}
                   </button>
@@ -1486,12 +2473,18 @@ export default function App() {
               </div>
             </div>
             <div className="letter-sheet">
+              <div className="letterhead">
+                <b>[INSERT OFFICE NAME]</b>
+                <span>REPUBLIC OF THE PHILIPPINES · [INSERT ADDRESS]</span>
+                <span>REF. NO. [INSERT REFERENCE] · [YEAR]</span>
+              </div>
               <pre>{emailText}</pre>
-              <div>
+              <div className="letter-actions">
                 <button
+                  type="button"
                   className="line-button"
                   onClick={() => {
-                    navigator.clipboard?.writeText(emailText);
+                    void navigator.clipboard?.writeText(emailText);
                     setCopied(true);
                   }}
                 >
@@ -1511,55 +2504,184 @@ export default function App() {
             <h3>Take the plan beyond this page.</h3>
             <div className="download-grid">
               {[
-                ["WATER IS A RIGHT", "1080 × 1080", "SOCIAL CARD"],
-                ["BAHAY NAMIN", "1080 × 1920", "STORY POST"],
-                ["ASK FOR THE ECC", "A4 / PDF", "RECORDS CHECKLIST"],
-                ["CALL A BARANGAY MEETING", "A4 / PDF", "ORGANIZING GUIDE"],
+                {
+                  title: "WATER IS A RIGHT",
+                  size: "1080 × 1080",
+                  type: "SOCIAL CARD",
+                  kind: "poster",
+                  code: "PRINT-01",
+                },
+                {
+                  title: "BAHAY NAMIN",
+                  size: "1080 × 1920",
+                  type: "STORY POST",
+                  kind: "poster",
+                  code: "PRINT-02",
+                },
+                {
+                  title: "PUBLIC DOCUMENT REQUEST",
+                  size: "A4 / PDF",
+                  type: "ECC / RECORDS CHECKLIST",
+                  kind: "spec",
+                  code: "TK-01",
+                },
+                {
+                  title: "BARANGAY MEETING",
+                  size: "A4 / PDF",
+                  type: "ORGANIZING GUIDE",
+                  kind: "spec",
+                  code: "TK-02",
+                },
+                {
+                  title: "PUBLIC HEARING",
+                  size: "A4 / PDF",
+                  type: "CHECKLIST DRAWING",
+                  kind: "spec",
+                  code: "TK-03",
+                },
               ].map((d, i) => (
                 <button
-                  key={d[0]}
-                  onClick={(e: MouseEvent<HTMLButtonElement>) => {
-                    e.currentTarget.querySelector("small")!.textContent =
-                      "READY TO DOWNLOAD [DEMO]";
-                  }}
+                  key={d.title}
+                  type="button"
+                  className={`kit-card ${d.kind === "poster" ? "poster-card" : "spec-card"}`}
+                  data-poster={d.kind === "poster" ? d.title : undefined}
+                  onClick={() => setKitStatus(i)}
                 >
-                  <span>0{i + 1}</span>
-                  <b>{d[0]}</b>
+                  <span className="kit-index">
+                    {d.code} · 0{i + 1}
+                  </span>
+                  {d.kind === "spec" && <ChecklistIcon />}
+                  <b>{d.title}</b>
                   <p>
-                    {d[1]} · {d[2]}
+                    {d.size} · {d.type}
                   </p>
-                  <small>DOWNLOAD ↓</small>
+                  {d.kind === "poster" && (
+                    <span className="poster-caption">[INSERT CAPTION — 1 LINE]</span>
+                  )}
+                  <small aria-live="polite">
+                    {kitStatus === i ? "READY TO DOWNLOAD [DEMO]" : "DOWNLOAD ↓"}
+                  </small>
                 </button>
               ))}
             </div>
             <p className="hashtags">#NoToPaxSilica &nbsp; #BahayNaminHindiDataCenter</p>
           </div>
+          <CrowdBoundary />
         </section>
       </main>
 
-      <footer>
-        <LogoMark className="footer-watermark" />
-        <div>
-          <LogoMark />
-          <b>NO TO PAX SILICA</b>
-          <p>A community blueprint for accountable technology.</p>
+      <footer aria-label="Campaign drawing title block">
+        <FooterWatermark />
+        <div className="title-cell project-cell">
+          <LogoImage />
+          <span>PROJECT TITLE</span>
+          <b>A DROP IN THE CLOUD</b>
+          <p>OPPOSING THE PAX SILICA PROJECT · [INSERT FOOTER BLURB — 1 LINE]</p>
+          <em className="footer-rejected">REJECTED</em>
         </div>
-        <div>
-          <span>REVISION</span>
-          <b>ONGOING</b>
+        <div className="title-cell drawn-cell">
           <span>DRAWN BY</span>
           <b>THE PEOPLE</b>
+          <span>REVISION</span>
+          <b>ONGOING</b>
+          <span>SCALE</span>
+          <b>HUMAN</b>
         </div>
-        <div>
+        <div className="title-cell contact-cell">
+          <span>CONTACT / SOCIAL</span>
           <a href="mailto:hello@example.org">CONTACT ↗</a>
+          <a href="#action">[INSERT SOCIAL LINK] ↗</a>
           <a href="#research">SOURCE REGISTER ↗</a>
           <a href="#action">TAKE ACTION ↗</a>
         </div>
-        <small>
-          All statistics marked [VERIFY] are placeholders pending primary-source review. This
-          prototype does not submit data to a server.
-        </small>
+        <div className="title-cell sheet-cell">
+          <span>SHEET</span>
+          <b>F-001</b>
+          <span>STATUS</span>
+          <b>FOR PUBLIC ACTION</b>
+          <span>DATE</span>
+          <b>[YEAR]</b>
+        </div>
+        <div className="title-cell sources-cell">
+          <span>DATA SOURCES</span>
+          <small>[SOURCE] · [INSERT DISCLAIMER — 2 LINES]</small>
+        </div>
       </footer>
+
+      {zoomedReality !== null && (
+        <div
+          className="flashcard-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="flashcard-modal-title"
+          onClick={() => setZoomedReality(null)}
+        >
+          <article className="flashcard-modal-card" onClick={(event) => event.stopPropagation()}>
+            <button
+              ref={realityCloseRef}
+              className="flashcard-modal-close"
+              onClick={() => setZoomedReality(null)}
+              aria-label="Close zoomed flashcard"
+            >
+              ×
+            </button>
+            <div className="flashcard-modal-head">
+              <span>PAX SILICA · PROJECT BRIEF / P.{String(zoomedReality + 1).padStart(2, "0")}</span>
+              <span>CLAIM / FIELD CONDITION</span>
+            </div>
+            <h3 id="flashcard-modal-title">{realityPairs[zoomedReality][0]}</h3>
+            <div className="flashcard-modal-body">
+              <section className="flashcard-modal-side flashcard-modal-claim">
+                <small>WHAT THEY SAY</small>
+                <p>“{realityPairs[zoomedReality][0]}”</p>
+                <span>[SOURCE · YEAR]</span>
+              </section>
+              <section className="flashcard-modal-side flashcard-modal-field">
+                <small>WHAT'S ON THE GROUND</small>
+                <p>{realityPairs[zoomedReality][1]}</p>
+                <span>[SOURCE · YEAR]</span>
+              </section>
+            </div>
+            <p className="flashcard-modal-note">PREV / NEXT LIFTS THE NEXT CARD. CLICK OUTSIDE TO CLOSE.</p>
+          </article>
+        </div>
+      )}
+
+      {activeMyth !== null && (
+        <div
+          className="myth-modal z-[100]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="myth-modal-title"
+          onClick={() => setActiveMyth(null)}
+        >
+          <article className="myth-modal-card" onClick={(event) => event.stopPropagation()}>
+            <button
+              ref={mythCloseRef}
+              className="myth-modal-close"
+              onClick={() => setActiveMyth(null)}
+              aria-label="Close fact"
+            >
+              ×
+            </button>
+            <div className="myth-modal-head">
+              <span className="myth-modal-stamp">MYTH / {String(activeMyth + 1).padStart(2, "0")}</span>
+              <span className="myth-modal-fact-badge">FACT CHECK / DEBUNK REGISTER</span>
+            </div>
+            <h3 id="myth-modal-title">{myths[activeMyth].claim}</h3>
+            <p className="myth-modal-divider">CLAIM / FIELD CONDITION</p>
+            <p className="myth-modal-fact">{myths[activeMyth].fact}</p>
+            <div className="myth-modal-grid">
+              <span>{myths[activeMyth].source}</span>
+              <span>[INSERT DEBUNK NOTE — 2 LINES]</span>
+              <span>[INSERT VERIFICATION DATE]</span>
+            </div>
+            <button className="myth-modal-done" onClick={() => setActiveMyth(null)}>
+              CLOSE ×
+            </button>
+          </article>
+        </div>
+      )}
 
       {article && (
         <div
@@ -1579,15 +2701,8 @@ export default function App() {
             <h2>{article.title}</h2>
             <h3>{article.source}</h3>
             <p className="article-note">{article.note}</p>
-            <p>
-              This is a placeholder reading panel for the full sourced document. Before publication,
-              this area will contain a plain-language summary, methodology notes, key findings,
-              limitations, and direct quotations checked against the original.
-            </p>
-            <p>
-              All numerical claims will remain marked <b>[VERIFY]</b> until reviewed against a
-              primary source.
-            </p>
+            <p>[INSERT ARTICLE BODY — 4–5 LINES]</p>
+            <p>[INSERT SOURCE NOTE — 2 LINES]</p>
             <a
               href="https://www.iea.org/energy-system/buildings/data-centres-and-data-transmission-networks"
               target="_blank"
